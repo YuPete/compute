@@ -1,0 +1,50 @@
+#ifndef BPFTRACE_HAVE_BTF
+#include <linux/sched.h>
+#else
+
+#define TASK_RUNNING 0
+#endif
+
+BEGIN
+{
+  printf("Tracing CPU scheduler... Hit Ctrl-C to end.\n");
+}
+
+tracepoint:sched:sched_process_fork
+{
+  @start[args.child_pid] = nsecs;
+}
+
+tracepoint:sched:sched_wakeup,
+tracepoint:sched:sched_wakeup_new
+{
+    @runq_stamp[args.pid] = nsecs;
+}
+
+tracepoint:sched:sched_switch
+{
+  if (args.prev_state == TASK_RUNNING) {
+    @runq_stamp[args.prev_pid] = nsecs; 
+  }
+
+  $ns = @runq_stamp[args.next_pid];
+  if ($ns) {
+    @runq_ms[args.next_pid] += (nsecs - $ns) / 1000000;
+  }
+}
+
+tracepoint:sched:sched_process_exit
+{
+    $start_stamp = @start[args.pid];
+    $runq_total = @runq_ms[args.pid]
+
+    if ($start_stamp && $runq_total) {
+        printf("%s,%d,%lu,%lu", args.comm, args.pid, $runq_total, nsecs-$start_stamp);
+    }
+    
+}
+
+END
+{
+  clear(@qtime);
+}
