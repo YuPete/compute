@@ -10,13 +10,12 @@ BEGIN
 	printf("COMM,PID,RUNQ_MS,TOTAL_MS\n");
 }
 
-tracepoint:sched:sched_process_fork
+tracepoint:sched:sched_wakeup_new
 {
 	@start[args.child_pid] = nsecs;
 }
 
-tracepoint:sched:sched_wakeup,
-tracepoint:sched:sched_wakeup_new
+tracepoint:sched:sched_wakeup
 {
 	@runq_stamp[args.pid] = nsecs;
 }
