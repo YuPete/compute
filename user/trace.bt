@@ -13,6 +13,7 @@ BEGIN
 tracepoint:sched:sched_wakeup_new
 {
 	@start[args.child_pid] = nsecs;
+	@runq_stamp[args.pid] = nsecs;
 }
 
 tracepoint:sched:sched_wakeup
@@ -45,7 +46,7 @@ tracepoint:sched:sched_process_exit
 
 	delete(@runq_ms[args.pid]); // we need this cuz we do +=
 	//these two are just to keep things clean
-	delete(@runq_stamp[args.pid]); 
+	delete(@runq_stamp[args.pid]);
 	delete(@start[args.pid]);
 }
 
