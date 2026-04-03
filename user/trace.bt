@@ -12,7 +12,7 @@ BEGIN
 
 tracepoint:sched:sched_wakeup_new
 {
-	@start[args.child_pid] = nsecs;
+	@start[args.pid] = nsecs;
 	@runq_stamp[args.pid] = nsecs;
 }
 
