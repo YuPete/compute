@@ -566,7 +566,9 @@ do {									\
 #endif
 # define u64_u32_load(var)      u64_u32_load_copy(var, var##_copy)
 # define u64_u32_store(var, val) u64_u32_store_copy(var, var##_copy, val)
+struct freezer_rq {
 
+};
 /* CFS-related fields in a runqueue */
 struct cfs_rq {
 	struct load_weight	load;
