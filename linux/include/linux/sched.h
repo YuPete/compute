@@ -574,8 +574,8 @@ struct sched_entity {
 #endif
 };
 
-struct sched_freezer_entity{
-	struct freezer_rq			*freezer_rq;		
+struct sched_freezer_entity {
+	struct freezer_rq		*freezer_rq;
 };
 
 struct sched_rt_entity {

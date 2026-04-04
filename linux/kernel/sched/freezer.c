@@ -7,23 +7,29 @@ static void task_tick_freezer(struct rq *rq, struct task_struct *curr, int queue
 
 static void switched_to_freezer(struct rq *rq, struct task_struct *p)
 {
-	BUG();
+	WARN_ONCE();
 }
 
 static void
 prio_changed_freezer(struct rq *rq, struct task_struct *p, int oldprio)
 {
-	BUG();
+	WARN_ONCE();
 }
 static void update_curr_freezer(struct rq *rq)
 {
 }
 
 static void
+enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
+{
+	WARN_ONCE();
+}
+
+static void
 dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
 	raw_spin_rq_unlock_irq(rq);
-	printk(KERN_ERR "bad: scheduling from the freezer thread!\n");
+	pr_err("bad: scheduling from the freezer thread!\n");
 	dump_stack();
 	raw_spin_rq_lock_irq(rq);
 }
@@ -86,6 +92,7 @@ DEFINE_SCHED_CLASS(freezer) = {
 	/* no enqueue/yield_task for freezer tasks */
 
 	/* dequeue is not valid, we print a debug message there: */
+	.enqueue_task		= enqueue_task_freezer,
 	.dequeue_task		= dequeue_task_freezer,
 
 	.wakeup_preempt		= wakeup_preempt_freezer,
