@@ -4,4 +4,7 @@
 
 #define  FREEZER_TIMESLICE ((100 * HZ)/1000)
 
+struct freezer_rq;
+struct sched_freezer_entity;
+
 #endif

@@ -567,7 +567,9 @@ do {									\
 # define u64_u32_load(var)      u64_u32_load_copy(var, var##_copy)
 # define u64_u32_store(var, val) u64_u32_store_copy(var, var##_copy, val)
 struct freezer_rq {
-
+	//add sentinel listnode head
+       struct list_head freezer_list; //sentinel list head for freezer rq
+       unsigned long nr_running; // for later, when we need to decide which CPU a task is assigned to / for stealing
 };
 /* CFS-related fields in a runqueue */
 struct cfs_rq {
