@@ -18,6 +18,7 @@
 #include <linux/sched/hotplug.h>
 #include <linux/sched/posix-timers.h>
 #include <linux/sched/rt.h>
+#include <linux/sched/freezer.h>
 
 #include <linux/cpuidle.h>
 #include <linux/jiffies.h>
@@ -41,7 +42,7 @@
 /* Source code modules: */
 
 #include "idle.c"
-
+#include "freezer.c"
 #include "rt.c"
 
 #ifdef CONFIG_SMP

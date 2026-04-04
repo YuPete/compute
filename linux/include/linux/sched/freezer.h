@@ -1,4 +1,4 @@
-#ifdef _LINUX_SCHED_FREEZER_H
+#ifndef _LINUX_SCHED_FREEZER_H
 #define _LINUX_SCHED_FREEZER_H
 #include <linux/sched.h>
 

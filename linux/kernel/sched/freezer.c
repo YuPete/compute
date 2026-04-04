@@ -1,87 +1,75 @@
-#include "freezer.h"
 int sched_freezer_timeslice = FREEZER_TIMESLICE;
 
 static void task_tick_freezer(struct rq *rq, struct task_struct *curr, int queued)
 {
+	WARN_ONCE(1, "msg");
 }
 
 static void switched_to_freezer(struct rq *rq, struct task_struct *p)
 {
-	WARN_ONCE();
+	WARN_ONCE(1, "msg");
 }
 
 static void
 prio_changed_freezer(struct rq *rq, struct task_struct *p, int oldprio)
 {
-	WARN_ONCE();
+	WARN_ONCE(1, "msg");
 }
 static void update_curr_freezer(struct rq *rq)
 {
+	WARN_ONCE(1, "msg");
 }
 
 static void
 enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
-	WARN_ONCE();
+	WARN_ONCE(1, "msg");
 }
 
 static void
 dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
-	raw_spin_rq_unlock_irq(rq);
-	pr_err("bad: scheduling from the freezer thread!\n");
-	dump_stack();
-	raw_spin_rq_lock_irq(rq);
+	WARN_ONCE(1, "msg");
 }
 
 struct task_struct *pick_next_task_freezer(struct rq *rq)
 {
-	struct task_struct *next = rq->freezer;
-
-	set_next_task_freezer(rq, next, true);
-
-	return next;
+	return NULL;
 }
 /*
  * freezer tasks are unconditionally rescheduled:
  */
 static void wakeup_preempt_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
-	resched_curr(rq);
+	WARN_ONCE(1, "msg");
 }
 
 static void put_prev_task_freezer(struct rq *rq, struct task_struct *prev)
 {
+	WARN_ONCE(1, "msg");
 }
 
 static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool first)
 {
-	update_freezer_core(rq);
-	schedstat_inc(rq->sched_gofreezer);
+	WARN_ONCE(1, "msg");
 }
 
 #ifdef CONFIG_SMP
 static int
 select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 {
-	return task_cpu(p); /* freezer tasks as never migrated */
+	return 0; /* freezer tasks as never migrated */
 }
 
 static int
 balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
-	return WARN_ON_ONCE(1);
+	return 0;
 }
 
 static struct task_struct *pick_task_freezer(struct rq *rq)
 {
-	return rq->freezer;
-}
-
-static int
-select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
-{
-	return task_cpu(p); /* freezer tasks as never migrated */
+	return NULL;
 }
 #endif
 /*
