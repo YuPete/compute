@@ -15,7 +15,7 @@ static void requeue_task_freezer(struct rq *rq, struct task_struct *p)
 	struct sched_freezer_entity *fz_se = &p->freezer;
 	struct freezer_rq *fz_rq = &rq->freezer;
 
-	list_move_tail(&fz_se->run_list, &fz_rq->queue);
+	list_move_tail(&fz_se->freezer_list, &fz_rq->freezer_list);
 }
 
 static void update_curr_freezer(struct rq *rq)
@@ -46,7 +46,7 @@ static void task_tick_freezer(struct rq *rq, struct task_struct *curr, int queue
 
 	//gotta update queue otherwise flags won't be set
 	//and will just return to og task
-	if (fz_se->run_list.prev != fz_se->run_list.next) {
+	if (fz_se->freezer_list.prev != fz_se->freezer_list.next) {
 		// rotate task to back of queue
 		requeue_task_freezer(rq, curr);
 		// set the flag
@@ -78,7 +78,7 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
 	pr_info("enqueue\n");
-	freezer_se->time_slize = sched_freezer_timeslice;
+	freezer_se->time_slice = sched_freezer_timeslice;
 	list_add_tail(&freezer_se->freezer_list, &rq->freezer.freezer_list);
 	++rq->freezer.nr_running;
 }
@@ -93,32 +93,6 @@ dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 	list_del_init(&freezer_se->freezer_list);
 	update_curr_freezer(rq);
 	--rq.freezer.nr_running;
-}
-
-struct task_struct *pick_next_task_freezer(struct rq *rq)
-{
-	struct task_struct *next = pick_task_freezer(rq);
-
-	pr_info("pick_next_task\n");
-	set_next_task_freezer(rq, next, true);
-	return next;
-}
-/*
- * freezer tasks are unconditionally rescheduled:
- */
-static void wakeup_preempt_freezer(struct rq *rq, struct task_struct *p, int flags)
-{
-	return;
-}
-
-static void put_prev_task_freezer(struct rq *rq, struct task_struct *prev)
-{
-	update_curr_freezer(rq);
-}
-
-static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool first)
-{
-	return;
 }
 
 #ifdef CONFIG_SMP
@@ -152,6 +126,33 @@ static struct task_struct *pick_task_freezer(struct rq *rq)
 }
 
 #endif
+
+static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool first)
+{
+	return;
+}
+
+struct task_struct *pick_next_task_freezer(struct rq *rq)
+{
+	struct task_struct *next = pick_task_freezer(rq);
+
+	pr_info("pick_next_task\n");
+	set_next_task_freezer(rq, next, true);
+	return next;
+}
+/*
+ * freezer tasks are unconditionally rescheduled:
+ */
+static void wakeup_preempt_freezer(struct rq *rq, struct task_struct *p, int flags)
+{
+	return;
+}
+
+static void put_prev_task_freezer(struct rq *rq, struct task_struct *prev)
+{
+	update_curr_freezer(rq);
+}
+
 /*
  * Simple, special scheduling class for the per-CPU freezer tasks:
  */
