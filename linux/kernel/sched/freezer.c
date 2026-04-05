@@ -1,3 +1,8 @@
+
+#include "sched.h"
+
+#define  FREEZER_TIMESLICE ((100 * HZ)/1000)
+
 int sched_freezer_timeslice = FREEZER_TIMESLICE;
 
 static void task_tick_freezer(struct rq *rq, struct task_struct *curr, int queued)
