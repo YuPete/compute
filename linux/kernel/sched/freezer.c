@@ -1,14 +1,48 @@
+static void requeue_task_freezer(struct rq *rq, struct task_struct *p)
+{
+    struct sched_freezer_entity *fz_se = &p->freezer;
+    struct freezer_rq *fz_rq = &rq->freezer;
 
-#include "sched.h"
+    list_move_tail(&fz_se->run_list, &fz_rq->queue);
+}
 
-#define  FREEZER_TIMESLICE ((100 * HZ)/1000)
+static void update_curr_freezer(struct rq *rq)
+{
+    struct task_struct *curr = rq->curr;
 
-int sched_freezer_timeslice = FREEZER_TIMESLICE;
+    if (curr->sched_class != &freezer_sched_class)
+        return;
+
+    update_curr_common(rq);   
+}
 
 static void task_tick_freezer(struct rq *rq, struct task_struct *curr, int queued)
 {
-	WARN_ONCE(1, "msg");
+	struct sched_freezer_entity *fz_se = &curr->freezer;
+
+    update_curr_freezer(rq);          // update runtime 
+	//no need for avg load time -> 1 cpu
+
+	//watchdof is like rt specific
+
+	//decrement time and check
+    if (--fz_se->time_slice)
+        return;
+
+    //reset time slice
+    fz_se->time_slice = sched_freezer_timeslice;
+
+	//gotta update queue otherwise flags wont be set 
+	//and will just return to og task
+    if (fz_se->run_list.prev != fz_se->run_list.next) {
+        // rotate task to back of queue
+        requeue_task_freezer(rq, curr);
+        // set the flag
+        resched_curr(rq);
+        return;
+    }
 }
+
 
 static void switched_to_freezer(struct rq *rq, struct task_struct *p)
 {
@@ -34,47 +68,68 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 static void
 dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
-	WARN_ONCE(1, "msg");
+       struct sched_freezer_entity *freezer_se = &(p->freezer);
+
+       list_del_init(&freezer_se->freezer_list);
+       update_curr_freezer(rq);
+       --rq.freezer.nr_running;
 }
 
 struct task_struct *pick_next_task_freezer(struct rq *rq)
 {
-	return NULL;
+	struct freezer_rq *freezer = &rq->freezer;
+	struct sched_freezer_entity *freezer_se;
+	struct task_struct *next;
+
+	freezer_se = list_first_entry(&freezer->freezer_list,
+				      struct sched_freezer_entity,
+				      freezer_list);
+
+	next = container_of(freezer_se, struct task_struct, freezer);
+
+	set_next_task_freezer(rq, next, true);
+	return next;
 }
 /*
  * freezer tasks are unconditionally rescheduled:
  */
 static void wakeup_preempt_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
-	WARN_ONCE(1, "msg");
+	resched_curr(rq);
 }
 
 static void put_prev_task_freezer(struct rq *rq, struct task_struct *prev)
 {
-	WARN_ONCE(1, "msg");
 }
 
 static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool first)
 {
-	WARN_ONCE(1, "msg");
+	update_freezer_core(rq);
+	schedstat_inc(rq->sched_gofreezer);
 }
 
 #ifdef CONFIG_SMP
 static int
 select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 {
-	return 0; /* freezer tasks as never migrated */
+	return task_cpu(p); /* freezer tasks as never migrated */
 }
 
 static int
 balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
-	return 0;
+	return WARN_ON_ONCE(1);
 }
 
 static struct task_struct *pick_task_freezer(struct rq *rq)
 {
-	return NULL;
+	return rq->freezer;
+}
+
+static int
+select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
+{
+	return task_cpu(p); /* freezer tasks as never migrated */
 }
 #endif
 /*
