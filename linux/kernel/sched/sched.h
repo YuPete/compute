@@ -108,6 +108,7 @@ extern void call_trace_sched_update_nr_running(struct rq *rq, int count);
 extern int sysctl_sched_rt_period;
 extern int sysctl_sched_rt_runtime;
 extern int sched_rr_timeslice;
+extern int sched_freezer_timeslice;
 
 /*
  * Helpers for converting nanosecond timing to jiffy resolution
@@ -2901,6 +2902,7 @@ static inline void resched_latency_warn(int cpu, u64 latency) {}
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq);
 extern void init_dl_rq(struct dl_rq *dl_rq);
+extern void init_freezer_rq(struct freezer_rq *freezer_rq);
 
 extern void cfs_bandwidth_usage_inc(void);
 extern void cfs_bandwidth_usage_dec(void);
