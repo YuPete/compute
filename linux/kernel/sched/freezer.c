@@ -92,7 +92,7 @@ dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 	pr_info("dequeue\n");
 	list_del_init(&freezer_se->freezer_list);
 	update_curr_freezer(rq);
-	--rq.freezer.nr_running;
+	--rq->freezer.nr_running;
 }
 
 #ifdef CONFIG_SMP
@@ -106,7 +106,8 @@ select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 static int
 balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
-	return WARN_ON_ONCE(1);
+	pr_info("balance_freezer");
+	return 0;
 }
 
 static struct task_struct *pick_task_freezer(struct rq *rq)
@@ -116,6 +117,10 @@ static struct task_struct *pick_task_freezer(struct rq *rq)
 	struct task_struct *next;
 
 	pr_info("select_pick_task_freezer\n");
+
+	if (list_empty(&freezer->freezer_list))
+		return NULL;
+
 	freezer_se = list_first_entry(&freezer->freezer_list,
 				      struct sched_freezer_entity,
 				      freezer_list);
@@ -137,6 +142,10 @@ struct task_struct *pick_next_task_freezer(struct rq *rq)
 	struct task_struct *next = pick_task_freezer(rq);
 
 	pr_info("pick_next_task\n");
+
+	if (!next)
+		return NULL;
+
 	set_next_task_freezer(rq, next, true);
 	return next;
 }
@@ -158,9 +167,7 @@ static void put_prev_task_freezer(struct rq *rq, struct task_struct *prev)
  */
 DEFINE_SCHED_CLASS(freezer) = {
 
-	/* no enqueue/yield_task for freezer tasks */
 
-	/* dequeue is not valid, we print a debug message there: */
 	.enqueue_task		= enqueue_task_freezer,
 	.dequeue_task		= dequeue_task_freezer,
 
