@@ -1,3 +1,15 @@
+#include "sched.h"
+
+#define  FREEZER_TIMESLICE ((100 * HZ)/1000)
+
+int sched_freezer_timeslice = FREEZER_TIMESLICE;
+
+void init_freezer_rq(struct freezer_rq *freezer_rq)
+{
+	INIT_LIST_HEAD(&freezer_rq->freezer_list);
+	freezer_rq->nr_running = 0;
+}
+
 static void requeue_task_freezer(struct rq *rq, struct task_struct *p)
 {
 	struct sched_freezer_entity *fz_se = &p->freezer;
@@ -46,7 +58,12 @@ static void task_tick_freezer(struct rq *rq, struct task_struct *curr, int queue
 
 static void switched_to_freezer(struct rq *rq, struct task_struct *p)
 {
-	WARN_ONCE(1, "msg");
+	return;
+}
+
+static void switched_from_freezer(struct rq *rq, struct task_struct *p)
+{
+	return;
 }
 
 static void
@@ -54,16 +71,14 @@ prio_changed_freezer(struct rq *rq, struct task_struct *p, int oldprio)
 {
 	return;
 }
-static void update_curr_freezer(struct rq *rq)
-{
-	WARN_ONCE(1, "msg");
-}
 
 static void
 enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
+	pr_info("enqueue\n");
+	freezer_se->time_slize = sched_freezer_timeslice;
 	list_add_tail(&freezer_se->freezer_list, &rq->freezer.freezer_list);
 	++rq->freezer.nr_running;
 }
@@ -73,6 +88,8 @@ dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
+
+	pr_info("dequeue\n");
 	list_del_init(&freezer_se->freezer_list);
 	update_curr_freezer(rq);
 	--rq.freezer.nr_running;
@@ -82,6 +99,7 @@ struct task_struct *pick_next_task_freezer(struct rq *rq)
 {
 	struct task_struct *next = pick_task_freezer(rq);
 
+	pr_info("pick_next_task\n");
 	set_next_task_freezer(rq, next, true);
 	return next;
 }
@@ -95,6 +113,7 @@ static void wakeup_preempt_freezer(struct rq *rq, struct task_struct *p, int fla
 
 static void put_prev_task_freezer(struct rq *rq, struct task_struct *prev)
 {
+	update_curr_freezer(rq);
 }
 
 static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool first)
@@ -106,6 +125,7 @@ static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool 
 static int
 select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 {
+	pr_info("select_task_rq_freezer\n");
 	return cpu;
 }
 
@@ -121,6 +141,7 @@ static struct task_struct *pick_task_freezer(struct rq *rq)
 	struct sched_freezer_entity *freezer_se;
 	struct task_struct *next;
 
+	pr_info("select_pick_task_freezer\n");
 	freezer_se = list_first_entry(&freezer->freezer_list,
 				      struct sched_freezer_entity,
 				      freezer_list);
@@ -153,6 +174,7 @@ DEFINE_SCHED_CLASS(freezer) = {
 	.pick_task		= pick_task_freezer,
 	.select_task_rq		= select_task_rq_freezer,
 	.set_cpus_allowed	= set_cpus_allowed_common,
+	.switched_from		= switched_from_freezer,
 #endif
 
 	.task_tick		= task_tick_freezer,
