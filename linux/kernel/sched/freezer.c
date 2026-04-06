@@ -78,11 +78,14 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
 	pr_info("enqueue\n");
-	
+	if (freezer_se->on_rq)
+		return;
+
 	freezer_se->time_slice = sched_freezer_timeslice;
 	list_add_tail(&freezer_se->freezer_list, &rq->freezer.freezer_list);
 	++rq->freezer.nr_running;
 	add_nr_running(rq, 1);
+	freezer_se->on_rq = true;
 }
 
 static void
@@ -91,11 +94,14 @@ dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
 	pr_info("dequeue\n");
-	update_curr_freezer(rq);
+	if (!freezer_se->on_rq)
+		return;
 
+	update_curr_freezer(rq);
 	list_del_init(&freezer_se->freezer_list);
 	--rq->freezer.nr_running;
 	sub_nr_running(rq, 1);
+	freezer_se->on_rq = false;
 }
 
 #ifdef CONFIG_SMP

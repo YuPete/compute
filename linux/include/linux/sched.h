@@ -577,6 +577,7 @@ struct sched_entity {
 struct sched_freezer_entity {
 	struct list_head freezer_list; //list head for freezer rq
 	unsigned int time_slice;
+	bool on_rq;
 };
 
 struct sched_rt_entity {
