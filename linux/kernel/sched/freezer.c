@@ -78,6 +78,10 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
 	pr_info("enqueue\n");
+	if (!(&freezer_se->freezer_list == freezer_se->freezer_list.next &&
+      &freezer_se->freezer_list == freezer_se->freezer_list.prev))
+		return;
+
 	freezer_se->time_slice = sched_freezer_timeslice;
 	list_add_tail(&freezer_se->freezer_list, &rq->freezer.freezer_list);
 	++rq->freezer.nr_running;
@@ -89,7 +93,8 @@ dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
 	pr_info("dequeue\n");
-	if (freezer_se->freezer_list.prev==freezer_se->freezer_list.next)
+	if (&freezer_se->freezer_list == freezer_se->freezer_list.next &&
+    &freezer_se->freezer_list == freezer_se->freezer_list.prev)
 		return;
 
 	list_del_init(&freezer_se->freezer_list);
