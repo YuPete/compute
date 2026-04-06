@@ -82,6 +82,7 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 	freezer_se->time_slice = sched_freezer_timeslice;
 	list_add_tail(&freezer_se->freezer_list, &rq->freezer.freezer_list);
 	++rq->freezer.nr_running;
+	add_nr_running(rq, 1);
 }
 
 static void
@@ -94,6 +95,7 @@ dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 
 	list_del_init(&freezer_se->freezer_list);
 	--rq->freezer.nr_running;
+	sub_nr_running(rq, 1);
 }
 
 #ifdef CONFIG_SMP
@@ -109,6 +111,13 @@ balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
 	pr_info("balance_freezer");
 	return 0;
+}
+
+#endif
+
+static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool first)
+{
+    next->se.exec_start = rq_clock_task(rq);
 }
 
 static struct task_struct *pick_task_freezer(struct rq *rq)
@@ -129,13 +138,6 @@ static struct task_struct *pick_task_freezer(struct rq *rq)
 	next = container_of(freezer_se, struct task_struct, freezer);
 
 	return next;
-}
-
-#endif
-
-static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool first)
-{
-	return;
 }
 
 struct task_struct *pick_next_task_freezer(struct rq *rq)
@@ -173,6 +175,7 @@ DEFINE_SCHED_CLASS(freezer) = {
 	.dequeue_task		= dequeue_task_freezer,
 
 	.wakeup_preempt		= wakeup_preempt_freezer,
+	.pick_task		= pick_task_freezer,
 
 	.pick_next_task		= pick_next_task_freezer,
 	.put_prev_task		= put_prev_task_freezer,
@@ -180,7 +183,6 @@ DEFINE_SCHED_CLASS(freezer) = {
 
 #ifdef CONFIG_SMP
 	.balance		= balance_freezer,
-	.pick_task		= pick_task_freezer,
 	.select_task_rq		= select_task_rq_freezer,
 	.set_cpus_allowed	= set_cpus_allowed_common,
 	.switched_from		= switched_from_freezer,
