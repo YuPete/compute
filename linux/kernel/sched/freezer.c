@@ -93,12 +93,12 @@ dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
 	pr_info("dequeue\n");
+	update_curr_freezer(rq);
 	if (&freezer_se->freezer_list == freezer_se->freezer_list.next &&
     &freezer_se->freezer_list == freezer_se->freezer_list.prev)
 		return;
 
 	list_del_init(&freezer_se->freezer_list);
-	update_curr_freezer(rq);
 	--rq->freezer.nr_running;
 }
 
