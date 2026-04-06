@@ -30,5 +30,7 @@ int main(int argc, char **argv)
 	}
 
 	n = atoi(argv[1]);
-	return fib(n);
+	int r = fib(n);
+	printf("%d", r);
+	return r;
 }
