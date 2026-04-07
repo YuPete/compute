@@ -580,6 +580,12 @@ struct freezer_rq {
 	unsigned long nr_running;
 	// for later, when we need to decide which CPU a task is assigned to / for stealing
 };
+
+struct heater_rq{
+	struct list_head heater_list;
+	unsigned long nr_running;
+}
+
 /* CFS-related fields in a runqueue */
 struct cfs_rq {
 	struct load_weight	load;
@@ -1029,6 +1035,7 @@ struct rq {
 	struct rt_rq		rt;
 	struct dl_rq		dl;
 	struct freezer_rq		freezer;
+	struct heater_rq		heater;
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this CPU: */

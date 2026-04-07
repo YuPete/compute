@@ -580,6 +580,11 @@ struct sched_freezer_entity {
 	bool on_rq;
 };
 
+struct sched_heater_entity {
+	struct list_head heater_list;
+	bool on_rq;
+}
+
 struct sched_rt_entity {
 	struct list_head		run_list;
 	unsigned long			timeout;
@@ -802,6 +807,7 @@ struct task_struct {
 
 	struct sched_entity		se;
 	struct sched_freezer_entity freezer;
+	struct sched_heater_entity  heater;
 	struct sched_rt_entity		rt;
 	struct sched_dl_entity		dl;
 	struct sched_dl_entity		*dl_server;
