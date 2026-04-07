@@ -4548,6 +4548,9 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 	p->freezer.time_slice = sched_freezer_timeslice;
 	p->freezer.on_rq = false;
 
+	INIT_LIST_HEAD(&p->heater.heater_list);
+	p->heater.on_rq = false;
+
 
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	INIT_HLIST_HEAD(&p->preempt_notifiers);
@@ -9988,6 +9991,7 @@ void __init sched_init(void)
 		init_rt_rq(&rq->rt);
 		init_dl_rq(&rq->dl);
 		init_freezer_rq(&rq->freezer);
+		init_heater_rq(&rq->heater);
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		INIT_LIST_HEAD(&rq->leaf_cfs_rq_list);

@@ -33,3 +33,4 @@ obj-y += fair.o
 obj-y += build_policy.o
 obj-y += build_utility.o
 obj-y += freezer.o
+obj-y += heater.o

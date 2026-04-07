@@ -59,14 +59,14 @@ dequeue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 static int
 select_task_rq_heater(struct task_struct *p, int cpu, int flags)
 {
-	
+	return cpu
 }
 
 static int
 balance_heater(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
 
-	return 0;
+	return cpu;
 }
 
 #endif
@@ -79,12 +79,12 @@ static void set_next_task_heater(struct rq *rq, struct task_struct *next, bool f
 static struct task_struct *pick_task_heater(struct rq *rq)
 {
 
-	return next;
+	return NULL;
 }
 
 struct task_struct *pick_next_task_heater(struct rq *rq)
 {
-
+	return NULL;
 }
 /*
  * heater tasks are unconditionally rescheduled:

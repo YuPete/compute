@@ -584,7 +584,7 @@ struct freezer_rq {
 struct heater_rq{
 	struct list_head heater_list;
 	unsigned long nr_running;
-}
+};
 
 /* CFS-related fields in a runqueue */
 struct cfs_rq {
@@ -2386,6 +2386,7 @@ extern const struct sched_class rt_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
 extern const struct sched_class freezer_sched_class;
+extern const struct sched_class heater_sched_class;
 
 static inline bool sched_stop_runnable(struct rq *rq)
 {
@@ -2917,6 +2918,7 @@ extern void init_cfs_rq(struct cfs_rq *cfs_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq);
 extern void init_dl_rq(struct dl_rq *dl_rq);
 extern void init_freezer_rq(struct freezer_rq *freezer_rq);
+extern void init_heater_rq(struct heater_rq *heater_rq);
 
 extern void cfs_bandwidth_usage_inc(void);
 extern void cfs_bandwidth_usage_dec(void);
