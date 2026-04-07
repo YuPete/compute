@@ -1,6 +1,7 @@
 #include "sched.h"
 
 #define  FREEZER_TIMESLICE ((100 * HZ)/1000)
+#define  get_freezer_nr_running_from_cpu(cpu) (cpu_rq(cpu)->freezer.nr_running)
 
 int sched_freezer_timeslice = FREEZER_TIMESLICE;
 
@@ -109,6 +110,27 @@ static int
 select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 {
 	pr_info("select_task_rq_freezer\n");
+	int cpu_candidate;
+	unsigned long cur_min, tmp;
+
+	//besides wakeups, return task_cpu
+	if (!(flags & (WF_TTWU | WF_FORK)))
+		goto out;
+	rcu_read_lock();
+	cur_min = READ_ONCE(get_freezer_nr_running_from_cpu(cpu));
+
+	for_each_cpu(cpu_candidate,p->cpus_ptr) {
+		pr_info("cycling through cpus\n");
+		tmp = READ_ONCE(get_freezer_nr_running_from_cpu(cpu_candidate));
+		pr_info("cpu %d has %lu freezer tasks\n", cpu_candidate, tmp);
+		if (tmp < cur_min) {
+			cpu = cpu_candidate;
+			cur_min = tmp;
+		}
+	}	
+	pr_info("%d cpu chosen!\n",cpu);
+	rcu_read_unlock(); 
+out:
 	return cpu;
 }
 
