@@ -7,7 +7,8 @@ DEFINE_RAW_SPINLOCK(global_rq_lock);
 
 void init_heater_rq(struct heater_rq *heater_rq)
 {
-
+	INIT_LIST_HEAD(&heater_rq->heater_list);
+	heater_rq->nr_running = 0;	
 }
 
 static void requeue_task_heater(struct rq *rq, struct task_struct *p)
