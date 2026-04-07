@@ -7078,6 +7078,8 @@ static void __setscheduler_prio(struct task_struct *p, int prio)
 		p->sched_class = &rt_sched_class;
 	else if (p->policy == SCHED_FREEZER)
 		p->sched_class = &freezer_sched_class;
+	else if (p->policy == SCHED_HEATER)
+		p->sched_class = &heater_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
 
@@ -9058,6 +9060,7 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_FREEZER:
+	case SCHED_HEATER:
 	case SCHED_IDLE:
 		ret = 0;
 		break;
@@ -9086,6 +9089,7 @@ SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_FREEZER:
+	case SCHED_HEATER:
 	case SCHED_IDLE:
 		ret = 0;
 	}

@@ -11,19 +11,20 @@ void init_heater_rq(struct heater_rq *heater_rq)
 	heater_rq->nr_running = 0;	
 }
 
-static void requeue_task_heater(struct rq *rq, struct task_struct *p)
-{
-
-}
-
 static void update_curr_heater(struct rq *rq)
 {
+	struct task_struct *curr = rq->curr;
 
+	if (curr->sched_class != &heater_sched_class)
+		return;
+
+	update_curr_common(rq);
 }
 
 static void task_tick_heater(struct rq *rq, struct task_struct *curr, int queued)
 {
-	
+	update_curr_freezer(rq);          // update runtime
+
 }
 
 

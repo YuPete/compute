@@ -192,11 +192,17 @@ static inline int freezer_policy(int policy)
 	return policy == SCHED_FREEZER;
 }
 
+
+static inline int freezer_policy(int policy)
+{
+	return policy == SCHED_HEATER;
+}
+
 static inline bool valid_policy(int policy)
 {
 	return idle_policy(policy) || fair_policy(policy) ||
 		rt_policy(policy) || dl_policy(policy) ||
-		freezer_policy(policy);
+		freezer_policy(policy) || heater_policy(policy);
 }
 
 static inline int task_has_idle_policy(struct task_struct *p)
