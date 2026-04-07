@@ -59,18 +59,15 @@ static void task_tick_freezer(struct rq *rq, struct task_struct *curr, int queue
 
 static void switched_to_freezer(struct rq *rq, struct task_struct *p)
 {
-	return;
 }
 
 static void switched_from_freezer(struct rq *rq, struct task_struct *p)
 {
-	return;
 }
 
 static void
 prio_changed_freezer(struct rq *rq, struct task_struct *p, int oldprio)
 {
-	return;
 }
 
 static void
@@ -84,7 +81,7 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 
 	freezer_se->time_slice = sched_freezer_timeslice;
 	list_add_tail(&freezer_se->freezer_list, &rq->freezer.freezer_list);
-	++rq->freezer.nr_running;
+	WRITE_ONCE(rq->freezer.nr_running, rq->freezer.nr_running+1);
 	add_nr_running(rq, 1);
 	freezer_se->on_rq = true;
 }
@@ -100,7 +97,7 @@ dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 
 	update_curr_freezer(rq);
 	list_del_init(&freezer_se->freezer_list);
-	--rq->freezer.nr_running;
+	WRITE_ONCE(rq->freezer.nr_running, rq->freezer.nr_running-1);
 	sub_nr_running(rq, 1);
 	freezer_se->on_rq = false;
 }
@@ -113,13 +110,12 @@ select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 	int cpu_candidate;
 	unsigned long cur_min, tmp;
 
-	//besides wakeups, return task_cpu
+	//besides wakeups and fork, return task_cpu
 	if (!(flags & (WF_TTWU | WF_FORK)))
 		goto out;
-	rcu_read_lock();
 	cur_min = READ_ONCE(get_freezer_nr_running_from_cpu(cpu));
 
-	for_each_cpu(cpu_candidate,p->cpus_ptr) {
+	for_each_cpu(cpu_candidate, p->cpus_ptr) {
 		pr_info("cycling through cpus\n");
 		tmp = READ_ONCE(get_freezer_nr_running_from_cpu(cpu_candidate));
 		pr_info("cpu %d has %lu freezer tasks\n", cpu_candidate, tmp);
@@ -127,9 +123,8 @@ select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 			cpu = cpu_candidate;
 			cur_min = tmp;
 		}
-	}	
-	pr_info("%d cpu chosen!\n",cpu);
-	rcu_read_unlock(); 
+	}
+	pr_info("%d cpu chosen!\n", cpu);
 out:
 	return cpu;
 }
@@ -145,7 +140,7 @@ balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 
 static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool first)
 {
-    next->se.exec_start = rq_clock_task(rq);
+	next->se.exec_start = rq_clock_task(rq);
 }
 
 static struct task_struct *pick_task_freezer(struct rq *rq)
@@ -185,7 +180,6 @@ struct task_struct *pick_next_task_freezer(struct rq *rq)
  */
 static void wakeup_preempt_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
-	return;
 }
 
 static void put_prev_task_freezer(struct rq *rq, struct task_struct *prev)
