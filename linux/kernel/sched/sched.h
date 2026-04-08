@@ -193,7 +193,7 @@ static inline int freezer_policy(int policy)
 }
 
 
-static inline int freezer_policy(int policy)
+static inline int heater_policy(int policy)
 {
 	return policy == SCHED_HEATER;
 }

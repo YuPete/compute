@@ -8,7 +8,7 @@ DEFINE_RAW_SPINLOCK(global_rq_lock);
 void init_heater_rq(struct heater_rq *heater_rq)
 {
 	INIT_LIST_HEAD(&heater_rq->heater_list);
-	heater_rq->nr_running = 0;	
+	heater_rq->nr_running = 0;
 }
 
 static void update_curr_heater(struct rq *rq)
