@@ -174,7 +174,7 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 	if (!is_cpu_allowed(next,curr_cpu)) {
 		raw_spin_unlock(&global_rq_lock);
 		return NULL;
-	}*/
+	}
 
 	//case 4: we run the head on this cpu
 	list_del_init(&heater_se->heater_list);
