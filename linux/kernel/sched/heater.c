@@ -163,18 +163,20 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 		raw_spin_unlock(&global_rq_lock);
 		return NULL;
 	}
+	//scan global rq and if a suitable task is found go to success
 	list_for_each_entry(heater_se,&global_rq,heater_list){
 		next = container_of(heater_se, struct task_struct, heater);
 		if (is_cpu_allowed(next,curr_cpu)) {
 			goto success;
 	}
 	}
+	//case 3 no suitable task is found
 	raw_spin_unlock(&global_rq_lock);
 	return NULL;
 	
 
 success:
-	//case 4: we run the head on this cpu
+	//case 4: we run the chosen task on this cpu
 	list_del_init(&heater_se->heater_list);
 	heater->run_q = next;
 	add_nr_running(rq, 1);
