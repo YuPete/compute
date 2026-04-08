@@ -4797,6 +4797,8 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 		p->sched_class = &rt_sched_class;
 	else if (p->policy == SCHED_FREEZER)
 		p->sched_class = &freezer_sched_class;
+	else if (p->policy == SCHED_HEATER)
+		p->sched_class = &heater_sched_class
 	else
 		p->sched_class = &fair_sched_class;
 
