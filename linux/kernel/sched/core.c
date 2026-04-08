@@ -9925,9 +9925,9 @@ void __init sched_init(void)
 	/* Make sure the linker didn't screw up */
 
 	BUG_ON(&idle_sched_class != &heater_sched_class + 1 ||
-		&heater_sched_class != &freezer_sched_class + 1 ||
-		&freezer_sched_class != &fair_sched_class + 1 ||
-	       &fair_sched_class != &rt_sched_class + 1 ||
+		&heater_sched_class != &fair_sched_class + 1 ||
+		&fair_sched_class != &freezer_sched_class + 1 ||
+	       &freezer_sched_class != &rt_sched_class + 1 ||
 	       &rt_sched_class   != &dl_sched_class + 1);
 
 #ifdef CONFIG_SMP
