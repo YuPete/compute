@@ -7,8 +7,8 @@ DEFINE_RAW_SPINLOCK(global_rq_lock);
 
 void init_heater_rq(struct heater_rq *heater_rq)
 {
-	INIT_LIST_HEAD(&heater_rq->heater_list);
-	heater_rq->nr_running = 0;
+	struct task_struct *run_q;
+	raw_spin_lock_init(&heater_rq->run_q_lock);
 }
 
 static void update_curr_heater(struct rq *rq)
@@ -47,7 +47,7 @@ prio_changed_heater(struct rq *rq, struct task_struct *p, int oldprio)
 static void
 enqueue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 {
-
+	raw_spin_lock(rq->)
 }
 
 static void
