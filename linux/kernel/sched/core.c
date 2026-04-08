@@ -6027,10 +6027,10 @@ __pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	 * higher scheduling class, because otherwise those lose the
 	 * opportunity to pull in more work from other CPUs.
 	 */
-	if (likely(!sched_class_above(prev->sched_class, &fair_sched_class) &&
-		   rq->nr_running == rq->cfs.h_nr_running)) {
+	if (likely(!sched_class_above(prev->sched_class, &freezer_sched_class) &&
+		   rq->nr_running == rq->freezer_rq.nr_running)) {
 
-		p = pick_next_task_fair(rq, prev, rf);
+		p = pick_next_task_freezer(rq, prev, rf);
 		if (unlikely(p == RETRY_TASK))
 			goto restart;
 
