@@ -4800,7 +4800,7 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	else if (p->policy == SCHED_HEATER)
 		p->sched_class = &heater_sched_class
 	else
-		p->sched_class = &freezezr_sched_class;
+		p->sched_class = &freezer_sched_class;
 
 	init_entity_runnable_average(&p->se);
 
