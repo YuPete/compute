@@ -23,7 +23,7 @@ static void update_curr_heater(struct rq *rq)
 
 static void task_tick_heater(struct rq *rq, struct task_struct *curr, int queued)
 {
-	update_curr_freezer(rq);          // update runtime
+	update_curr_heater(rq);          // update runtime
 
 }
 
@@ -60,14 +60,14 @@ dequeue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 static int
 select_task_rq_heater(struct task_struct *p, int cpu, int flags)
 {
-	return cpu
+	return cpu;
 }
 
 static int
 balance_heater(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
 
-	return cpu;
+	return smp_processor_id();
 }
 
 #endif
