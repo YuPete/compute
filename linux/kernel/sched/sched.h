@@ -587,7 +587,7 @@ struct freezer_rq {
 	// for later, when we need to decide which CPU a task is assigned to / for stealing
 };
 
-struct heater_rq{
+struct heater_rq {
 	struct task_struct *run_q;
 };
 

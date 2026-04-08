@@ -66,13 +66,11 @@ static void switched_to_heater(struct rq *rq, struct task_struct *p)
 
 static void switched_from_heater(struct rq *rq, struct task_struct *p)
 {
-	return;
 }
 
 static void
 prio_changed_heater(struct rq *rq, struct task_struct *p, int oldprio)
 {
-	return;
 }
 
 static void
@@ -144,7 +142,7 @@ balance_heater(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 
 static void set_next_task_heater(struct rq *rq, struct task_struct *next, bool first)
 {
-    next->se.exec_start = rq_clock_task(rq);
+	next->se.exec_start = rq_clock_task(rq);
 }
 
 static struct task_struct *pick_task_heater(struct rq *rq)
@@ -174,9 +172,9 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 
 	//case 3: the head of the global_rq can't be run on this cpu
 	if (!is_cpu_allowed(next,curr_cpu)) {
-                raw_spin_unlock(&global_rq_lock);
-                return NULL;
-        }
+		raw_spin_unlock(&global_rq_lock);
+		return NULL;
+	}*/
 
 	//case 4: we run the head on this cpu
 	list_del_init(&heater_se->heater_list);
@@ -207,7 +205,6 @@ struct task_struct *pick_next_task_heater(struct rq *rq)
  */
 static void wakeup_preempt_heater(struct rq *rq, struct task_struct *p, int flags)
 {
-	return;
 }
 
 static void put_prev_task_heater(struct rq *rq, struct task_struct *prev)

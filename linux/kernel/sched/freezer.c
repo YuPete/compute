@@ -34,7 +34,7 @@ static void task_tick_freezer(struct rq *rq, struct task_struct *curr, int queue
 	struct sched_freezer_entity *fz_se = &curr->freezer;
 
 	update_curr_freezer(rq);
-	
+
 	if (--fz_se->time_slice)
 		return;
 
