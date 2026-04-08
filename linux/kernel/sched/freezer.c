@@ -33,24 +33,15 @@ static void task_tick_freezer(struct rq *rq, struct task_struct *curr, int queue
 {
 	struct sched_freezer_entity *fz_se = &curr->freezer;
 
-	update_curr_freezer(rq);          // update runtime
-	//no need for avg load time -> 1 cpu
-
-	//watchdof is like rt specific
-
-	//decrement time and check
+	update_curr_freezer(rq);
+	
 	if (--fz_se->time_slice)
 		return;
 
-	//reset time slice
 	fz_se->time_slice = sched_freezer_timeslice;
 
-	//gotta update queue otherwise flags won't be set
-	//and will just return to og task
 	if (fz_se->freezer_list.prev != fz_se->freezer_list.next) {
-		// rotate task to back of queue
 		requeue_task_freezer(rq, curr);
-		// set the flag
 		resched_curr(rq);
 		return;
 	}

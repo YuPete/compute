@@ -3,12 +3,9 @@
 LIST_HEAD(global_rq);
 DEFINE_RAW_SPINLOCK(global_rq_lock);
 
-#define  get_heater_nr_running_from_cpu(cpu) (cpu_rq(cpu)->heater.nr_running)
-
 void init_heater_rq(struct heater_rq *heater_rq)
 {
-	struct task_struct *run_q;
-	raw_spin_lock_init(&heater_rq->run_q_lock);
+	heater_rq->run_q = NULL;
 }
 
 static void update_curr_heater(struct rq *rq)
@@ -54,19 +51,18 @@ enqueue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 	if (heater_se->on_rq)
 		return;
 
-	raw_spin_lock(&heater->run_q_lock);
 	if (!heater->run_q) {
 		heater->run_q = p;
-		raw_spin_unlock(&heater->run_q_lock);
 		heater_se->on_rq = true;
+		add_nr_running(rq, 1);
 		return;
 	}
-	raw_spin_unlock(&heater->run_q_lock);
 
 	raw_spin_lock(&global_rq_lock);
 	list_add_tail(&heater_se->heater_list, &global_rq);
 	heater_se->on_rq = true;
 	raw_spin_unlock(&global_rq_lock);
+	add_nr_running(rq, 1);
 }
 
 static void
@@ -80,10 +76,18 @@ dequeue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 		return;
 
 	update_curr_heater(rq);
-	raw_spin_lock(&heater->run_q_lock);
-	heater->run_q = NULL;
-	heater_se->on_rq = false;
-	raw_spin_unlock(&heater->run_q_lock);
+	
+	if (heater->run_q == p) {
+         heater->run_q = NULL;
+    } else {
+		//what if signal or something comes and kills task on global queue
+        raw_spin_lock(&global_rq_lock);
+        list_del_init(&heater_se->heater_list);
+        raw_spin_unlock(&global_rq_lock);
+    }
+
+    heater_se->on_rq = false;
+    sub_nr_running(rq, 1);
 }
 
 #ifdef CONFIG_SMP
@@ -97,14 +101,14 @@ static int
 balance_heater(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
 
-	return smp_processor_id();
+	return 0;
 }
 
 #endif
 
 static void set_next_task_heater(struct rq *rq, struct task_struct *next, bool first)
 {
-
+    next->se.exec_start = rq_clock_task(rq);
 }
 
 static struct task_struct *pick_task_heater(struct rq *rq)
@@ -119,9 +123,10 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 
 	raw_spin_lock(&global_rq_lock);
 
-	if (list_empty(&global_rq))
+	if (list_empty(&global_rq)) {
 		raw_spin_unlock(&global_rq_lock);
 		return NULL;
+	}
 
 	heater_se = list_first_entry(&global_rq,
 				      struct sched_heater_entity,
@@ -164,7 +169,7 @@ static void wakeup_preempt_heater(struct rq *rq, struct task_struct *p, int flag
 
 static void put_prev_task_heater(struct rq *rq, struct task_struct *prev)
 {
-	update_curr_freezer(rq);
+	update_curr_heater(rq);
 }
 
 /*

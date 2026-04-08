@@ -589,7 +589,6 @@ struct freezer_rq {
 
 struct heater_rq{
 	struct task_struct *run_q;
-	raw_spinlock_t run_q_lock;
 };
 
 /* CFS-related fields in a runqueue */
