@@ -581,6 +581,7 @@ struct sched_freezer_entity {
 };
 
 struct sched_heater_entity {
+	struct list_head heater_list;
 	bool on_rq;
 };
 

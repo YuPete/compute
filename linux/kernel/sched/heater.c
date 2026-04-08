@@ -1,6 +1,6 @@
 #include "sched.h"
 
-struct heater_rq global_rq;
+LIST_HEAD(global_rq);
 DEFINE_RAW_SPINLOCK(global_rq_lock);
 
 #define  get_heater_nr_running_from_cpu(cpu) (cpu_rq(cpu)->heater.nr_running)
@@ -47,13 +47,43 @@ prio_changed_heater(struct rq *rq, struct task_struct *p, int oldprio)
 static void
 enqueue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 {
-	raw_spin_lock(rq->)
+	struct sched_heater_entity *heater_se = &(p->heater);
+	struct heater_rq *heater = &rq->heater;
+
+	pr_info("enqueue heater\n");
+	if (heater_se->on_rq)
+		return;
+
+	raw_spin_lock(&heater->run_q_lock);
+	if (!heater->run_q) {
+		heater->run_q = p;
+		raw_spin_unlock(&heater->run_q_lock);
+		heater_se->on_rq = true;
+		return;
+	}
+	raw_spin_unlock(&heater->run_q_lock);
+
+	raw_spin_lock(&global_rq_lock);
+	list_add_tail(&heater_se->heater_list, &global_rq);
+	heater_se->on_rq = true;
+	raw_spin_unlock(&global_rq_lock);
 }
 
 static void
 dequeue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 {
+	struct sched_heater_entity *heater_se = &(p->heater);
+	struct heater_rq *heater = &rq->heater;
 
+	pr_info("dequeue heater\n");
+	if (!heater_se->on_rq)
+		return;
+
+	update_curr_heater(rq);
+	raw_spin_lock(&heater->run_q_lock);
+	heater->run_q = NULL;
+	heater_se->on_rq = false;
+	raw_spin_unlock(&heater->run_q_lock);
 }
 
 #ifdef CONFIG_SMP
@@ -79,13 +109,56 @@ static void set_next_task_heater(struct rq *rq, struct task_struct *next, bool f
 
 static struct task_struct *pick_task_heater(struct rq *rq)
 {
+	struct heater_rq *heater = &rq->heater;
+	struct sched_freezer_entity *heater_se;
+	struct task_struct *next;
+	int cpu;
 
-	return NULL;
+	pr_info("select_pick_task_freezer\n");
+
+	raw_spin_lock(&heater->run_q_lock);
+	if (heater->run_q)
+		raw_spin_unlock(&heater->run_q_lock);
+		return heater->run_q;
+
+	raw_spin_lock(&global_rq_lock);
+
+	if (list_empty(&global_rq))
+		raw_spin_unlock(&heater->run_q_lock);
+		raw_spin_unlock(&global_rq_lock);
+		return NULL;
+
+	heater_se = list_first_entry(&global_rq,
+				      struct sched_heater_entity,
+				      heater_list);
+
+	next = container_of(heater_se, struct task_struct, heater);
+
+	//TODO: add check for if next cannot be run on this cpu
+
+	list_del_init(&heater_se->heater_list);
+	heater->run_q = next;
+
+	cpu = smp_processor_id();
+	if (task_cpu(next) != cpu)
+		set_task_cpu(next, cpu);
+
+	raw_spin_unlock(&heater->run_q_lock);
+	raw_spin_unlock(&global_rq_lock);
+	return next;
 }
 
 struct task_struct *pick_next_task_heater(struct rq *rq)
 {
-	return NULL;
+	struct task_struct *next = pick_task_heater(rq);
+
+	pr_info("pick_next_task\n");
+
+	if (!next)
+		return NULL;
+
+	set_next_task_heater(rq, next, true);
+	return next;
 }
 /*
  * heater tasks are unconditionally rescheduled:
@@ -97,7 +170,7 @@ static void wakeup_preempt_heater(struct rq *rq, struct task_struct *p, int flag
 
 static void put_prev_task_heater(struct rq *rq, struct task_struct *prev)
 {
-
+	update_curr_freezer(rq);
 }
 
 /*

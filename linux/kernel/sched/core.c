@@ -4548,6 +4548,7 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 	p->freezer.time_slice = sched_freezer_timeslice;
 	p->freezer.on_rq = false;
 
+	INIT_LIST_HEAD(&p->heater.heater_list);
 	p->heater.on_rq = false;
 
 
