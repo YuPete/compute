@@ -6026,7 +6026,7 @@ __pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	 * call that function directly, but only if the @prev task wasn't of a
 	 * higher scheduling class, because otherwise those lose the
 	 * opportunity to pull in more work from other CPUs.
-	 */
+	 
 	if (likely(!sched_class_above(prev->sched_class, &freezer_sched_class) &&
 		   rq->nr_running == rq->freezer_rq.nr_running)) {
 
@@ -6034,7 +6034,7 @@ __pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 		if (unlikely(p == RETRY_TASK))
 			goto restart;
 
-		/* Assume the next prioritized class is idle_sched_class */
+		/* Assume the next prioritized class is idle_sched_class 
 		if (!p) {
 			put_prev_task(rq, prev);
 			p = pick_next_task_idle(rq);
@@ -6043,14 +6043,14 @@ __pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 		/*
 		 * This is the fast path; it cannot be a DL server pick;
 		 * therefore even if @p == @prev, ->dl_server must be NULL.
-		 */
+		 
 		if (p->dl_server)
 			p->dl_server = NULL;
 
 		return p;
-	}
+	}*/
 
-restart:
+//restart:
 	put_prev_task_balance(rq, prev, rf);
 
 	/*
