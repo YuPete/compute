@@ -1,0 +1,60 @@
+#ifndef BPFTRACE_HAVE_BTF
+#include <linux/sched.h>
+#else
+
+#define TASK_RUNNING 0
+#endif
+
+BEGIN
+{
+	printf("COMM,PID,RUNQ_MS,TOTAL_MS\n");
+}
+
+tracepoint:sched:sched_wakeup_new
+{
+	@start[args.pid] = nsecs;
+	@runq_stamp[args.pid] = nsecs;
+}
+
+tracepoint:sched:sched_wakeup
+{
+	@runq_stamp[args.pid] = nsecs;
+}
+
+tracepoint:sched:sched_switch
+{
+	if (args.prev_state == TASK_RUNNING) {
+		@runq_stamp[args.prev_pid] = nsecs;
+	}
+
+	$ns = @runq_stamp[args.next_pid];
+
+	if ($ns) {
+		@runq_ms[args.next_pid] += (nsecs - $ns) / 1000000;
+	}
+
+	delete(@runq_stamp[args.next_pid]);
+}
+
+tracepoint:sched:sched_process_exit
+{
+	$start_stamp = @start[args.pid];
+	$runq_total = @runq_ms[args.pid];
+
+	if ($start_stamp) {
+		$total_runtime = (nsecs-$start_stamp) / 1000000;
+		printf("%s,%d,%lu,%lu\n", args.comm, args.pid, $runq_total, $total_runtime);
+	}
+
+	delete(@runq_ms[args.pid]); // we need this cuz we do +=
+	//these two are just to keep things clean
+	delete(@runq_stamp[args.pid]);
+	delete(@start[args.pid]);
+}
+
+END
+{
+	clear(@start);
+	clear(@runq_stamp);
+	clear(@runq_ms);
+}
