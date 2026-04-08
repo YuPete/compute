@@ -116,6 +116,7 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 	struct heater_rq *heater = &rq->heater;
 	struct sched_heater_entity *heater_se;
 	struct task_struct *next;
+	int cur_cpu =  smp_processor_id();
 	int cpu;
 
 	if (heater->run_q)
@@ -134,7 +135,12 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 
 	next = container_of(heater_se, struct task_struct, heater);
 
-	//TODO: add check for if next cannot be run on this cpu
+	//TODO: add check for if next cannot be run on this cpu; edit implemented below
+
+	       if (!is_cpu_allowed(next,cur_cpu)) {
+                raw_spin_unlock(&global_rq_lock);
+                return NULL;
+        }
 
 	list_del_init(&heater_se->heater_list);
 	heater->run_q = next;
