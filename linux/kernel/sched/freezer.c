@@ -66,7 +66,7 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
-	pr_info("enqueue\n");
+	//pr_info("enqueue\n");
 	if (freezer_se->on_rq)
 		return;
 
@@ -107,15 +107,15 @@ select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 	cur_min = READ_ONCE(get_freezer_nr_running_from_cpu(cpu));
 
 	for_each_cpu(cpu_candidate, p->cpus_ptr) {
-		pr_info("cycling through cpus\n");
+		//pr_info("cycling through cpus\n");
 		tmp = READ_ONCE(get_freezer_nr_running_from_cpu(cpu_candidate));
-		pr_info("cpu %d has %lu freezer tasks\n", cpu_candidate, tmp);
+		//pr_info("cpu %d has %lu freezer tasks\n", cpu_candidate, tmp);
 		if (tmp < cur_min) {
 			cpu = cpu_candidate;
 			cur_min = tmp;
 		}
 	}
-	pr_info("%d cpu chosen!\n", cpu);
+	//pr_info("%d cpu chosen!\n", cpu);
 out:
 	return cpu;
 }
@@ -140,7 +140,7 @@ static struct task_struct *pick_task_freezer(struct rq *rq)
 	struct sched_freezer_entity *freezer_se;
 	struct task_struct *next;
 
-	pr_info("select_pick_task_freezer\n");
+	//pr_info("select_pick_task_freezer\n");
 
 	if (list_empty(&freezer->freezer_list))
 		return NULL;
