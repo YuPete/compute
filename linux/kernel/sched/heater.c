@@ -192,7 +192,7 @@ struct task_struct *pick_next_task_heater(struct rq *rq)
 {
 	struct task_struct *next = pick_task_heater(rq);
 
-	pr_info("pick_next_task\n");
+	pr_info("pick_next_task_heater\n");
 
 	if (!next)
 		return NULL;

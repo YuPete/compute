@@ -82,7 +82,7 @@ dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
-	pr_info("dequeue\n");
+	//pr_info("dequeue\n");
 	if (!freezer_se->on_rq)
 		return;
 
@@ -97,7 +97,7 @@ dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 static int
 select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 {
-	pr_info("select_task_rq_freezer\n");
+	//pr_info("select_task_rq_freezer\n");
 	int cpu_candidate;
 	unsigned long cur_min, tmp;
 
@@ -123,7 +123,7 @@ out:
 static int
 balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
-	pr_info("balance_freezer");
+	//pr_info("balance_freezer");
 	return 0;
 }
 
@@ -158,7 +158,7 @@ struct task_struct *pick_next_task_freezer(struct rq *rq)
 {
 	struct task_struct *next = pick_task_freezer(rq);
 
-	pr_info("pick_next_task\n");
+	//pr_info("pick_next_task\n");
 
 	if (!next)
 		return NULL;
