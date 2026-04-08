@@ -110,21 +110,16 @@ static void set_next_task_heater(struct rq *rq, struct task_struct *next, bool f
 static struct task_struct *pick_task_heater(struct rq *rq)
 {
 	struct heater_rq *heater = &rq->heater;
-	struct sched_freezer_entity *heater_se;
+	struct sched_heater_entity *heater_se;
 	struct task_struct *next;
 	int cpu;
 
-	pr_info("select_pick_task_freezer\n");
-
-	raw_spin_lock(&heater->run_q_lock);
 	if (heater->run_q)
-		raw_spin_unlock(&heater->run_q_lock);
 		return heater->run_q;
 
 	raw_spin_lock(&global_rq_lock);
 
 	if (list_empty(&global_rq))
-		raw_spin_unlock(&heater->run_q_lock);
 		raw_spin_unlock(&global_rq_lock);
 		return NULL;
 
@@ -143,7 +138,6 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 	if (task_cpu(next) != cpu)
 		set_task_cpu(next, cpu);
 
-	raw_spin_unlock(&heater->run_q_lock);
 	raw_spin_unlock(&global_rq_lock);
 	return next;
 }
