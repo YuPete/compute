@@ -4775,7 +4775,7 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
 		if (task_has_dl_policy(p) || task_has_rt_policy(p)) {
-			p->policy = SCHED_NORMAL;
+			p->policy = SCHED_FREEZER;
 			p->static_prio = NICE_TO_PRIO(0);
 			p->rt_priority = 0;
 		} else if (PRIO_TO_NICE(p->static_prio) < 0)
@@ -4795,12 +4795,12 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 		return -EAGAIN;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
-	else if (p->policy == SCHED_FREEZER)
-		p->sched_class = &freezer_sched_class;
+	else if (p->policy == SCHED_NORMAL)
+		p->sched_class = &fair_sched_class;
 	else if (p->policy == SCHED_HEATER)
 		p->sched_class = &heater_sched_class
 	else
-		p->sched_class = &fair_sched_class;
+		p->sched_class = &freezezr_sched_class;
 
 	init_entity_runnable_average(&p->se);
 
@@ -7078,12 +7078,12 @@ static void __setscheduler_prio(struct task_struct *p, int prio)
 		p->sched_class = &dl_sched_class;
 	else if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
-	else if (p->policy == SCHED_FREEZER)
-		p->sched_class = &freezer_sched_class;
+	else if (p->policy == SCHED_NORMAL)
+    	p->sched_class = &fair_sched_class;
 	else if (p->policy == SCHED_HEATER)
 		p->sched_class = &heater_sched_class;
 	else
-		p->sched_class = &fair_sched_class;
+		p->sched_class = &freezer_sched_class;
 
 	p->prio = prio;
 }
