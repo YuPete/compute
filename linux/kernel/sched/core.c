@@ -6034,13 +6034,13 @@ __pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 		if (unlikely(p == RETRY_TASK))
 			goto restart;
 
-		/* Assume the next prioritized class is idle_sched_class 
+		//Assume the next prioritized class is idle_sched_class 
 		if (!p) {
 			put_prev_task(rq, prev);
 			p = pick_next_task_idle(rq);
 		}
 
-		/*
+		
 		 * This is the fast path; it cannot be a DL server pick;
 		 * therefore even if @p == @prev, ->dl_server must be NULL.
 		 
