@@ -51,6 +51,7 @@ enqueue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 	if (heater_se->on_rq)
 		return;
 
+	//case 1: per-cpu-runq is NULL
 	if (!heater->run_q) {
 		heater->run_q = p;
 		heater_se->on_rq = true;
@@ -58,11 +59,11 @@ enqueue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 		return;
 	}
 
+	//case 2: overflow case
 	raw_spin_lock(&global_rq_lock);
 	list_add_tail(&heater_se->heater_list, &global_rq);
 	heater_se->on_rq = true;
 	raw_spin_unlock(&global_rq_lock);
-	add_nr_running(rq, 1);
 }
 
 static void
@@ -76,18 +77,19 @@ dequeue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 		return;
 
 	update_curr_heater(rq);
-	
-	if (heater->run_q == p) {
-         heater->run_q = NULL;
-    } else {
-		//what if signal or something comes and kills task on global queue
-        raw_spin_lock(&global_rq_lock);
-        list_del_init(&heater_se->heater_list);
-        raw_spin_unlock(&global_rq_lock);
-    }
 
-    heater_se->on_rq = false;
-    sub_nr_running(rq, 1);
+	//case 1: task is on per_cpu_rq
+	if (heater->run_q == p) {
+		heater->run_q = NULL;
+		sub_nr_running(rq, 1);
+	} else {
+	//case 2: task is on global_rq
+		raw_spin_lock(&global_rq_lock);
+		list_del_init(&heater_se->heater_list);
+		raw_spin_unlock(&global_rq_lock);
+	}
+
+	heater_se->on_rq = false;
 }
 
 #ifdef CONFIG_SMP
@@ -116,14 +118,15 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 	struct heater_rq *heater = &rq->heater;
 	struct sched_heater_entity *heater_se;
 	struct task_struct *next;
-	int cur_cpu =  smp_processor_id();
-	int cpu;
+	int curr_cpu = smp_processor_id();
 
+	//case 1: smth is one the per-cpu-runq
 	if (heater->run_q)
 		return heater->run_q;
 
 	raw_spin_lock(&global_rq_lock);
 
+	//case 2: the global runqueue is empty
 	if (list_empty(&global_rq)) {
 		raw_spin_unlock(&global_rq_lock);
 		return NULL;
@@ -135,19 +138,19 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 
 	next = container_of(heater_se, struct task_struct, heater);
 
-	//TODO: add check for if next cannot be run on this cpu; edit implemented below
-
-	       if (!is_cpu_allowed(next,cur_cpu)) {
+	//case 3: the head of the global_rq can't be run on this cpu
+	if (!is_cpu_allowed(next,curr_cpu)) {
                 raw_spin_unlock(&global_rq_lock);
                 return NULL;
         }
 
+	//case 4: we run the head on this cpu
 	list_del_init(&heater_se->heater_list);
 	heater->run_q = next;
+	add_nr_running(rq, 1);
 
-	cpu = smp_processor_id();
-	if (task_cpu(next) != cpu)
-		set_task_cpu(next, cpu);
+	if (task_cpu(next) != curr_cpu)
+		set_task_cpu(next, curr_cpu);
 
 	raw_spin_unlock(&global_rq_lock);
 	return next;
