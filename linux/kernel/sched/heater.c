@@ -163,19 +163,17 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 		raw_spin_unlock(&global_rq_lock);
 		return NULL;
 	}
-
-	heater_se = list_first_entry(&global_rq,
-				      struct sched_heater_entity,
-				      heater_list);
-
-	next = container_of(heater_se, struct task_struct, heater);
-
-	//case 3: the head of the global_rq can't be run on this cpu
-	if (!is_cpu_allowed(next,curr_cpu)) {
-		raw_spin_unlock(&global_rq_lock);
-		return NULL;
+	list_for_each_entry(heater_se,&global_rq,heater_list){
+		next = container_of(heater_se, struct task_struct, heater);
+		if (is_cpu_allowed(next,curr_cpu)) {
+			goto success;
 	}
+	}
+	raw_spin_unlock(&global_rq_lock);
+	return NULL;
+	
 
+success:
 	//case 4: we run the head on this cpu
 	list_del_init(&heater_se->heater_list);
 	heater->run_q = next;
