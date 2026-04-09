@@ -66,7 +66,9 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
-	//pr_info("enqueue\n");
+	if (strcmp(p->comm, "pwd") == 0)
+		pr_info("enqueue\n");
+
 	if (freezer_se->on_rq)
 		return;
 
@@ -80,6 +82,9 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 static void
 dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
+	if (strcmp(p->comm, "pwd") == 0)
+		pr_info("dequeue\n");
+
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
 	//pr_info("dequeue\n");

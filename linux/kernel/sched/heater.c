@@ -79,7 +79,7 @@ enqueue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_heater_entity *heater_se = &(p->heater);
 	struct heater_rq *heater = &rq->heater;
 
-	pr_info("enqueue heater\n");
+	//pr_info("enqueue heater\n");
 	if (heater_se->on_rq)
 		return;
 
@@ -104,7 +104,7 @@ dequeue_task_heater(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_heater_entity *heater_se = &(p->heater);
 	struct heater_rq *heater = &rq->heater;
 
-	pr_info("dequeue heater\n");
+	//pr_info("dequeue heater\n");
 	if (!heater_se->on_rq)
 		return;
 
@@ -173,7 +173,7 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 	//case 3 no suitable task is found
 	raw_spin_unlock(&global_rq_lock);
 	return NULL;
-	
+
 
 success:
 	//case 4: we run the chosen task on this cpu
@@ -192,7 +192,7 @@ struct task_struct *pick_next_task_heater(struct rq *rq)
 {
 	struct task_struct *next = pick_task_heater(rq);
 
-	pr_info("pick_next_task_heater\n");
+	//pr_info("pick_next_task_heater\n");
 
 	if (!next)
 		return NULL;
