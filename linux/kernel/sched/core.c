@@ -6012,7 +6012,7 @@ static void put_prev_task_balance(struct rq *rq, struct task_struct *prev,
 
 	put_prev_task(rq, prev);
 }
-
+extern struct task_struct *pick_next_task_freezer(struct rq *rq);
 /*
  * Pick up the highest-prio task:
  */
@@ -6029,9 +6029,9 @@ __pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	 * opportunity to pull in more work from other CPUs.
 	 */
 	if (likely(!sched_class_above(prev->sched_class, &freezer_sched_class) &&
-		   rq->nr_running == rq->freezer_rq.nr_running)) {
+		   rq->nr_running == rq->freezer.nr_running)) {
 
-		p = pick_next_task_freezer(rq, prev, rf);
+		p = pick_next_task_freezer(rq);
 		if (unlikely(p == RETRY_TASK))
 			goto restart;
 
@@ -6051,7 +6051,7 @@ __pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 		return p;
 	}
 
-//restart:
+restart:
 	put_prev_task_balance(rq, prev, rf);
 
 	/*
