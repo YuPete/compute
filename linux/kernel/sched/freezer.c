@@ -178,6 +178,12 @@ static void put_prev_task_freezer(struct rq *rq, struct task_struct *prev)
 	update_curr_freezer(rq);
 }
 
+static void yield_task_freezer(struct rq *rq)
+{
+	requeue_task_freezer(rq, rq->curr);
+}
+
+
 /*
  * Simple, special scheduling class for the per-CPU freezer tasks:
  */
@@ -186,6 +192,7 @@ DEFINE_SCHED_CLASS(freezer) = {
 
 	.enqueue_task		= enqueue_task_freezer,
 	.dequeue_task		= dequeue_task_freezer,
+	.yield_task		= yield_task_freezer,
 
 	.wakeup_preempt		= wakeup_preempt_freezer,
 	.pick_task		= pick_task_freezer,
