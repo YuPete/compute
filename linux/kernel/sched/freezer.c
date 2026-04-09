@@ -71,7 +71,7 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 
 	if (freezer_se->on_rq)
 		return;
-
+	
 	freezer_se->time_slice = sched_freezer_timeslice;
 	list_add_tail(&freezer_se->freezer_list, &rq->freezer.freezer_list);
 	WRITE_ONCE(rq->freezer.nr_running, rq->freezer.nr_running+1);
