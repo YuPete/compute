@@ -4774,8 +4774,8 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	 * Revert to default priority/policy on fork if requested.
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
-		if (task_has_dl_policy(p) || task_has_rt_policy(p) || 
-    		freezer_policy(p->policy) || heater_policy(p->policy)) {
+		if (task_has_dl_policy(p) || task_has_rt_policy(p) ||
+			freezer_policy(p->policy) || heater_policy(p->policy)) {
 			p->policy = SCHED_FREEZER;
 			p->static_prio = NICE_TO_PRIO(0);
 			p->rt_priority = 0;
@@ -6043,8 +6043,9 @@ __pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 
 		/*
 		 * This is the fast path; it cannot be a DL server pick;
-		 * therefore even if @p == @prev, ->dl_server must be NULL.*/
-		 
+		 * therefore even if @p == @prev, ->dl_server must be NULL.
+		 */
+
 		if (p->dl_server)
 			p->dl_server = NULL;
 
@@ -7080,7 +7081,7 @@ static void __setscheduler_prio(struct task_struct *p, int prio)
 	else if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
 	else if (p->policy == SCHED_NORMAL)
-    	p->sched_class = &fair_sched_class;
+		p->sched_class = &fair_sched_class;
 	else if (p->policy == SCHED_HEATER)
 		p->sched_class = &heater_sched_class;
 	else

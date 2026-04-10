@@ -61,7 +61,6 @@ static void task_tick_heater(struct rq *rq, struct task_struct *curr, int queued
 
 static void switched_to_heater(struct rq *rq, struct task_struct *p)
 {
-	return;
 }
 
 static void switched_from_heater(struct rq *rq, struct task_struct *p)
@@ -164,11 +163,10 @@ static struct task_struct *pick_task_heater(struct rq *rq)
 		return NULL;
 	}
 	//scan global rq and if a suitable task is found go to success
-	list_for_each_entry(heater_se,&global_rq,heater_list){
+	list_for_each_entry(heater_se, &global_rq, heater_list) {
 		next = container_of(heater_se, struct task_struct, heater);
-		if (is_cpu_allowed(next,curr_cpu)) {
+		if (is_cpu_allowed(next, curr_cpu))
 			goto success;
-	}
 	}
 	//case 3 no suitable task is found
 	raw_spin_unlock(&global_rq_lock);
