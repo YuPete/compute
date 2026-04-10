@@ -1,7 +1,6 @@
 #include "sched.h"
 
 #define  FREEZER_TIMESLICE ((100 * HZ)/1000)
-#define  get_freezer_nr_running_from_cpu(cpu) (cpu_rq(cpu)->freezer.nr_running)
 #define  get_freezer_nr_running(cpu) (cpu_rq(cpu)->freezer.nr_running)
 
 int sched_freezer_timeslice = FREEZER_TIMESLICE;
@@ -72,7 +71,7 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 
 	if (freezer_se->on_rq)
 		return;
-	
+
 	freezer_se->time_slice = sched_freezer_timeslice;
 	list_add_tail(&freezer_se->freezer_list, &rq->freezer.freezer_list);
 	WRITE_ONCE(rq->freezer.nr_running, rq->freezer.nr_running+1);
@@ -110,11 +109,11 @@ select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 	//besides wakeups and fork, return task_cpu
 	if (!(flags & (WF_TTWU | WF_FORK)))
 		goto out;
-	cur_min = READ_ONCE(get_freezer_nr_running_from_cpu(cpu));
+	cur_min = READ_ONCE(get_freezer_nr_running(cpu));
 
 	for_each_cpu(cpu_candidate, p->cpus_ptr) {
 		//pr_info("cycling through cpus\n");
-		tmp = READ_ONCE(get_freezer_nr_running_from_cpu(cpu_candidate));
+		tmp = READ_ONCE(get_freezer_nr_running(cpu_candidate));
 		//pr_info("cpu %d has %lu freezer tasks\n", cpu_candidate, tmp);
 		if (tmp < cur_min) {
 			cpu = cpu_candidate;
@@ -125,56 +124,64 @@ select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 out:
 	return cpu;
 }
-#define  get_freezer_nr_running(cpu) (cpu_rq(cpu)->freezer.nr_running)
 //we should be holding the current rq's spin lock
 static int
 balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
-	//1. find cpu to steal freezer tasks from 
+	//1. find cpu to steal freezer tasks from
 	//pr_info("balance_freezer");
-	if (rq->freezer.nr_running != 0) 
+	if (rq->freezer.nr_running != 0)
 		return 0;
 
 	int cur_cpu = smp_processor_id();
 
 	int candidate_cpu; // for loop
 	int cur_max_cpu = -1; // current most busy cpu
+	int cur_max_ftasks = 1;
 
 	for_each_possible_cpu(candidate_cpu) {
 		if (candidate_cpu == cur_cpu)
 			continue;
-		//acquire lock for candidate_cpu 
-		if (cur_max_cpu == -1) {
-			if (get_freezer_nr_running(candidate_cpu) >=2)  // custom helper of get_freezer_nr_running
-				cur_max_cpu = candidate_cpu;
-		} else {
-			if (get_freezer_nr_running(candidate_cpu) > get_freezer_nr_running(cur_max_cpu))
-				cur_max_cpu = candidate_cpu;
-		}
-		//unlock candidate_cpu lock if it wasn't chosen? 
+
+		double_lock_balance(cur_cpu, candidate_cpu);
+
+		if (get_freezer_nr_running(candidate_cpu) > cur_max_ftasks)
+			cur_max_cpu = candidate_cpu;
+			cur_max_ftasks = get_freezer_nr_running(candidate_cpu);
+
+		double_unlock_balance(cur_cpu, candidate_cpu);
 	}
 
 	if (cur_max_cpu == -1)
 		return 0;
 
 	//2. move said task that we found to cur_cpu
+	double_lock_balance(cur_cpu, cur_max_cpu);
 	struct freezer_rq *candidate_freezer_rq =  &cpu_rq(cur_max_cpu)->freezer;
 	struct sched_freezer_entity *freezer_se;
 	struct task_struct *next;
+
+	if (get_freezer_nr_running(cur_cpu) != 0 || get_freezer_nr_running(cur_max_cpu) < 2)
+		goto fail
 
 	list_for_each_entry(freezer_se, &candidate_freezer_rq->freezer_list, freezer_list){
 		next = container_of(freezer_se, struct task_struct, freezer);
 		if (is_task_allowed(next,cur_max_cpu,cur_cpu)) // custom check
 			goto success;
-	
+
 	}
 
+fail:
+	double_unlock_balance(cur_cpu, cur_max_cpu);
 	return 0;
 
 success:
-	//move cpu logic, todo
-
-
+	//3.move cpu logic, todo
+        dequeue(cpu_rq(cur_max_rq), next, rf);
+        set_task_cpu(next, cur_cpu);
+        enqueue(rq, next, rf);
+	double_unlock_balance(cur_cpu, cur_max_cpu);
+        return 1;
 
 }
 
@@ -183,12 +190,12 @@ success:
 static bool is_task_allowed(struct task_struct *candidate, int new_cpu,int old_cpu) {
 	if (kthread_is_per_cpu(candidate))
 		return false;
-	if (!is_cpu_allowed(candidate,new_cpu))
+	if (!is_cpu_allowed(candidate, new_cpu))
 		return false;
-	if (task_on_cpu(cpu_rq(old_cpu),candidate))
+	if (task_on_cpu(cpu_rq(old_cpu), candidate))
 		return false;
 	return true;
-	
+
 }
 
 static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool first)
