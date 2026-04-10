@@ -5,6 +5,32 @@
 
 int sched_freezer_timeslice = FREEZER_TIMESLICE;
 
+static inline bool is_cpu_allowed(struct task_struct *p, int cpu)
+{
+	/* When not in the task's cpumask, no point in looking further. */
+	if (!cpumask_test_cpu(cpu, p->cpus_ptr))
+		return false;
+
+	/* migrate_disabled() must be allowed to finish. */
+	if (is_migration_disabled(p))
+		return cpu_online(cpu);
+
+	/* Non kernel threads are not allowed during either online or offline. */
+	if (!(p->flags & PF_KTHREAD))
+		return cpu_active(cpu) && task_cpu_possible(cpu, p);
+
+	/* KTHREAD_IS_PER_CPU is always allowed. */
+	if (kthread_is_per_cpu(p))
+		return cpu_online(cpu);
+
+	/* Regular kernel threads don't get to stay during offline. */
+	if (cpu_dying(cpu))
+		return false;
+
+	/* But are allowed during online. */
+	return cpu_online(cpu);
+}
+
 void init_freezer_rq(struct freezer_rq *freezer_rq)
 {
 	INIT_LIST_HEAD(&freezer_rq->freezer_list);
@@ -128,7 +154,7 @@ out:
 int
 balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
-	if (strcmp(p->comm, "fib") == 0)
+	if (strcmp(prev->comm, "fib") == 0)
 		pr_info("balance\n");
 
 	//1. find cpu to steal freezer tasks from
@@ -146,26 +172,26 @@ balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 		if (candidate_cpu == cur_cpu)
 			continue;
 
-		double_lock_balance(cur_cpu, candidate_cpu);
+		double_lock_balance(cpu_rq(cur_cpu), cpu_rq(candidate_cpu));
 
 		if (get_freezer_nr_running(candidate_cpu) > cur_max_ftasks)
 			cur_max_cpu = candidate_cpu;
 			cur_max_ftasks = get_freezer_nr_running(candidate_cpu);
 
-		double_unlock_balance(cur_cpu, candidate_cpu);
+		double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(candidate_cpu));
 	}
 
 	if (cur_max_cpu == -1)
 		return 0;
 
 	//2. move said task that we found to cur_cpu
-	double_lock_balance(cur_cpu, cur_max_cpu);
+	double_lock_balance(cpu_rq(cur_cpu), cpu_rq(cur_max_cpu));
 	struct freezer_rq *candidate_freezer_rq =  &cpu_rq(cur_max_cpu)->freezer;
 	struct sched_freezer_entity *freezer_se;
 	struct task_struct *next;
 
 	if (get_freezer_nr_running(cur_cpu) != 0 || get_freezer_nr_running(cur_max_cpu) < 2)
-		goto fail
+		goto fail;
 
 	list_for_each_entry(freezer_se, &candidate_freezer_rq->freezer_list, freezer_list){
 		next = container_of(freezer_se, struct task_struct, freezer);
@@ -175,15 +201,15 @@ balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	}
 
 fail:
-	double_unlock_balance(cur_cpu, cur_max_cpu);
+	double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(cur_max_cpu));
 	return 0;
 
 success:
 	//3.move cpu logic, todo
-        dequeue(cpu_rq(cur_max_rq), next, rf);
+        dequeue_freezer(cpu_rq(cur_max_rq), next, rf);
         set_task_cpu(next, cur_cpu);
-        enqueue(rq, next, rf);
-	double_unlock_balance(cur_cpu, cur_max_cpu);
+        enqueue_freezer(rq, next, rf);
+	double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(cur_max_cpu));
         return 1;
 
 }
