@@ -66,7 +66,7 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
 
-	if (strcmp(p->comm, "pwd") == 0)
+	if (strcmp(p->comm, "fib") == 0)
 		pr_info("enqueue\n");
 
 	if (freezer_se->on_rq)
@@ -82,7 +82,7 @@ enqueue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 static void
 dequeue_task_freezer(struct rq *rq, struct task_struct *p, int flags)
 {
-	if (strcmp(p->comm, "pwd") == 0)
+	if (strcmp(p->comm, "fib") == 0)
 		pr_info("dequeue\n");
 
 	struct sched_freezer_entity *freezer_se = &(p->freezer);
@@ -125,9 +125,12 @@ out:
 	return cpu;
 }
 //we should be holding the current rq's spin lock
-static int
+int
 balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
+	if (strcmp(p->comm, "fib") == 0)
+		pr_info("balance\n");
+
 	//1. find cpu to steal freezer tasks from
 	//pr_info("balance_freezer");
 	if (rq->freezer.nr_running != 0)
