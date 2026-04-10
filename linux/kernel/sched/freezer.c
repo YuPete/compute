@@ -2,6 +2,7 @@
 
 #define  FREEZER_TIMESLICE ((100 * HZ)/1000)
 #define  get_freezer_nr_running_from_cpu(cpu) (cpu_rq(cpu)->freezer.nr_running)
+#define  get_freezer_nr_running(cpu) (cpu_rq(cpu)->freezer.nr_running)
 
 int sched_freezer_timeslice = FREEZER_TIMESLICE;
 
@@ -125,11 +126,55 @@ out:
 	return cpu;
 }
 
+//we should be holding the current rq's spin lock
 static int
 balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
+	//1. find cpu to steal freezer tasks from 
 	//pr_info("balance_freezer");
+	if (rq->freezer.nr_running != 0) 
+		return 0;
+
+	int cur_cpu = smp_processor_id();
+
+	int candidate_cpu; // for loop
+	int cur_max_cpu = -1; // current most busy cpu
+
+	for_each_possible_cpu(candidate_cpu) {
+		if (candidate_cpu == cur_cpu)
+			continue;
+		//acquire lock for candidate_cpu 
+		if (cur_max_cpu == -1) {
+			if (get_freezer_nr_running(candidate_cpu) >=2)  // custom helper of get_freezer_nr_running
+				cur_max_cpu = candidate_cpu;
+		} else {
+			if (get_freezer_nr_running(candidate_cpu) > get_freezer_nr_running(cur_max_cpu))
+				cur_max_cpu = candidate_cpu;
+		}
+		//unlock candidate_cpu lock if it wasn't chosen? 
+	}
+
+	if (cur_max_cpu == -1)
+		return 0;
+
+	//2. move said task that we found to cur_cpu
+	struct task_struct *candidate;
+	struct feezer_rq *candidate_freezer_rq =  cpu_rq(cur_max_cpu)->freezer;
+	struct list_head *freezer_se;
+	struct task_struct *next;
+
+	list_for_each_entry(freezer_se, candidate_freezer_rq->freezer_list, freezer_list){
+		next = container_of(freezer_se, struct task_struct, freezer);
+		if (is_task_allowed(next,cur_cpu)) // custom check
+			goto success;
+	
+	}
 	return 0;
+
+success:
+
+
+
 }
 
 #endif
