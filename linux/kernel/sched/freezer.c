@@ -125,7 +125,7 @@ select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 out:
 	return cpu;
 }
-
+#define  get_freezer_nr_running(cpu) (cpu_rq(cpu)->freezer.nr_running)
 //we should be holding the current rq's spin lock
 static int
 balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
@@ -158,26 +158,38 @@ balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 		return 0;
 
 	//2. move said task that we found to cur_cpu
-	struct task_struct *candidate;
-	struct feezer_rq *candidate_freezer_rq =  cpu_rq(cur_max_cpu)->freezer;
-	struct list_head *freezer_se;
+	struct freezer_rq *candidate_freezer_rq =  &cpu_rq(cur_max_cpu)->freezer;
+	struct sched_freezer_entity *freezer_se;
 	struct task_struct *next;
 
-	list_for_each_entry(freezer_se, candidate_freezer_rq->freezer_list, freezer_list){
+	list_for_each_entry(freezer_se, &candidate_freezer_rq->freezer_list, freezer_list){
 		next = container_of(freezer_se, struct task_struct, freezer);
-		if (is_task_allowed(next,cur_cpu)) // custom check
+		if (is_task_allowed(next,cur_max_cpu,cur_cpu)) // custom check
 			goto success;
 	
 	}
+
 	return 0;
 
 success:
+	//move cpu logic, todo
 
 
 
 }
 
 #endif
+
+static bool is_task_allowed(struct task_struct *candidate, int new_cpu,int old_cpu) {
+	if (kthread_is_per_cpu(candidate))
+		return false;
+	if (!is_cpu_allowed(candidate,new_cpu))
+		return false;
+	if (task_on_cpu(cpu_rq(old_cpu),candidate))
+		return false;
+	return true;
+	
+}
 
 static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool first)
 {
