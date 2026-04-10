@@ -1,4 +1,5 @@
 #include "sched.h"
+#include <linux/mmu_context.h>
 
 #define  FREEZER_TIMESLICE ((100 * HZ)/1000)
 #define  get_freezer_nr_running(cpu) (cpu_rq(cpu)->freezer.nr_running)
