@@ -151,6 +151,18 @@ select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 out:
 	return cpu;
 }
+
+static bool is_task_allowed(struct task_struct *candidate, int new_cpu,int old_cpu) {
+	if (kthread_is_per_cpu(candidate))
+		return false;
+	if (!is_cpu_allowed(candidate, new_cpu))
+		return false;
+	if (task_on_cpu(cpu_rq(old_cpu), candidate))
+		return false;
+	return true;
+
+}
+
 //we should be holding the current rq's spin lock
 int
 balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
@@ -175,9 +187,10 @@ balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 
 		double_lock_balance(cpu_rq(cur_cpu), cpu_rq(candidate_cpu));
 
-		if (get_freezer_nr_running(candidate_cpu) > cur_max_ftasks)
+		if (get_freezer_nr_running(candidate_cpu) > cur_max_ftasks) {
 			cur_max_cpu = candidate_cpu;
 			cur_max_ftasks = get_freezer_nr_running(candidate_cpu);
+		}
 
 		double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(candidate_cpu));
 	}
@@ -207,26 +220,15 @@ fail:
 
 success:
 	//3.move cpu logic, todo
-        dequeue_freezer(cpu_rq(cur_max_rq), next, rf);
+        dequeue_task_freezer(cpu_rq(cur_max_cpu), next, rf);
         set_task_cpu(next, cur_cpu);
-        enqueue_freezer(rq, next, rf);
+        enqueue_task_freezer(rq, next, rf);
 	double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(cur_max_cpu));
         return 1;
 
 }
 
 #endif
-
-static bool is_task_allowed(struct task_struct *candidate, int new_cpu,int old_cpu) {
-	if (kthread_is_per_cpu(candidate))
-		return false;
-	if (!is_cpu_allowed(candidate, new_cpu))
-		return false;
-	if (task_on_cpu(cpu_rq(old_cpu), candidate))
-		return false;
-	return true;
-
-}
 
 static void set_next_task_freezer(struct rq *rq, struct task_struct *next, bool first)
 {
