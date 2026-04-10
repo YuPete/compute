@@ -220,9 +220,9 @@ fail:
 
 success:
 	//3.move cpu logic, todo
-        dequeue_task_freezer(cpu_rq(cur_max_cpu), next, rf);
+        dequeue_task_freezer(cpu_rq(cur_max_cpu), next, 0);
         set_task_cpu(next, cur_cpu);
-        enqueue_task_freezer(rq, next, rf);
+        enqueue_task_freezer(rq, next, 0);
 	double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(cur_max_cpu));
         return 1;
 
