@@ -181,16 +181,21 @@ balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	int cur_max_cpu = -1; // current most busy cpu
 	int cur_max_ftasks = 1;
 
+	rq_unpin_lock(rq, rf);
 	for_each_online_cpu(candidate_cpu) {
 		if (candidate_cpu == cur_cpu)
 			continue;
 
+		double_lock_balance(cpu_rq(cur_cpu), cpu_rq(candidate_cpu));
+	
 		if (get_freezer_nr_running(candidate_cpu) > cur_max_ftasks) {
 			cur_max_cpu = candidate_cpu;
 			cur_max_ftasks = get_freezer_nr_running(candidate_cpu);
 		}
-
+		
+		double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(candidate_cpu));
 	}
+	rq_repin_lock(rq, rf);
 
 	if (cur_max_cpu == -1)
 		return 0;
