@@ -2,7 +2,7 @@
 #include <linux/mmu_context.h>
 
 #define  FREEZER_TIMESLICE ((100 * HZ)/1000)
-#define  get_freezer_nr_running(cpu) (cpu_rq(cpu)->freezer.nr_running)
+#define  get_freezer_nr_running(cpu) (READ_ONCE(cpu_rq(cpu)->freezer.nr_running))
 
 int sched_freezer_timeslice = FREEZER_TIMESLICE;
 
@@ -136,11 +136,11 @@ select_task_rq_freezer(struct task_struct *p, int cpu, int flags)
 	//besides wakeups and fork, return task_cpu
 	if (!(flags & (WF_TTWU | WF_FORK)))
 		goto out;
-	cur_min = READ_ONCE(get_freezer_nr_running(cpu));
+	cur_min = get_freezer_nr_running(cpu);
 
 	for_each_cpu(cpu_candidate, p->cpus_ptr) {
 		//pr_info("cycling through cpus\n");
-		tmp = READ_ONCE(get_freezer_nr_running(cpu_candidate));
+		tmp = get_freezer_nr_running(cpu_candidate);
 		//pr_info("cpu %d has %lu freezer tasks\n", cpu_candidate, tmp);
 		if (tmp < cur_min) {
 			cpu = cpu_candidate;
@@ -167,6 +167,14 @@ static bool is_task_allowed(struct task_struct *candidate, int new_cpu,int old_c
 int
 balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
+	int cur_cpu = cpu_of(rq);
+	int candidate_cpu; // for loop
+	int cur_max_cpu = -1; // current most busy cpu
+	int cur_max_ftasks = 1;	
+	struct sched_freezer_entity *freezer_se;
+	struct task_struct *next = NULL;
+	struct freezer_rq *candidate_freezer_rq;
+
 	if (strcmp(prev->comm, "fib") == 0)
 		pr_info("balance\n");
 
@@ -175,51 +183,36 @@ balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	if (rq->freezer.nr_running != 0)
 		return 0;
 
-	int cur_cpu = smp_processor_id();
-
-	int candidate_cpu; // for loop
-	int cur_max_cpu = -1; // current most busy cpu
-	int cur_max_ftasks = 1;
-
-	rq_unpin_lock(rq, rf);
 	for_each_online_cpu(candidate_cpu) {
 		if (candidate_cpu == cur_cpu)
 			continue;
-
-		double_lock_balance(cpu_rq(cur_cpu), cpu_rq(candidate_cpu));
-	
 		if (get_freezer_nr_running(candidate_cpu) > cur_max_ftasks) {
 			cur_max_cpu = candidate_cpu;
 			cur_max_ftasks = get_freezer_nr_running(candidate_cpu);
 		}
-		
-		double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(candidate_cpu));
 	}
-	rq_repin_lock(rq, rf);
 
 	if (cur_max_cpu == -1)
 		return 0;
 
 	//2. move said task that we found to cur_cpu
 	rq_unpin_lock(rq, rf);
-	double_lock_balance(cpu_rq(cur_cpu), cpu_rq(cur_max_cpu));
-	
-	struct freezer_rq *candidate_freezer_rq =  &cpu_rq(cur_max_cpu)->freezer;
-	struct sched_freezer_entity *freezer_se;
-	struct task_struct *next;
+	double_lock_balance(rq, cpu_rq(cur_max_cpu));
 
 	if (get_freezer_nr_running(cur_cpu) != 0 || get_freezer_nr_running(cur_max_cpu) < 2)
 		goto fail;
+	
+	candidate_freezer_rq =  &cpu_rq(cur_max_cpu)->freezer;
 
 	list_for_each_entry(freezer_se, &candidate_freezer_rq->freezer_list, freezer_list){
 		next = container_of(freezer_se, struct task_struct, freezer);
 		if (is_task_allowed(next,cur_max_cpu,cur_cpu)) // custom check
 			goto success;
-
+		next = NULL;
 	}
 
 fail:
-	double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(cur_max_cpu));
+	double_unlock_balance(rq, cpu_rq(cur_max_cpu));
 	rq_repin_lock(rq, rf);
 	return 0;
 
@@ -228,7 +221,7 @@ success:
         dequeue_task_freezer(cpu_rq(cur_max_cpu), next, 0);
         set_task_cpu(next, cur_cpu);
         enqueue_task_freezer(rq, next, 0);
-	double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(cur_max_cpu));
+	double_unlock_balance(rq, cpu_rq(cur_max_cpu));
 	rq_repin_lock(rq, rf);
         return 1;
 
