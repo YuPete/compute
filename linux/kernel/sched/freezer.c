@@ -181,25 +181,24 @@ balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	int cur_max_cpu = -1; // current most busy cpu
 	int cur_max_ftasks = 1;
 
-	for_each_possible_cpu(candidate_cpu) {
+	for_each_online_cpu(candidate_cpu) {
 		if (candidate_cpu == cur_cpu)
 			continue;
-
-		double_lock_balance(cpu_rq(cur_cpu), cpu_rq(candidate_cpu));
 
 		if (get_freezer_nr_running(candidate_cpu) > cur_max_ftasks) {
 			cur_max_cpu = candidate_cpu;
 			cur_max_ftasks = get_freezer_nr_running(candidate_cpu);
 		}
 
-		double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(candidate_cpu));
 	}
 
 	if (cur_max_cpu == -1)
 		return 0;
 
 	//2. move said task that we found to cur_cpu
+	rq_unpin_lock(rq, rf);
 	double_lock_balance(cpu_rq(cur_cpu), cpu_rq(cur_max_cpu));
+	
 	struct freezer_rq *candidate_freezer_rq =  &cpu_rq(cur_max_cpu)->freezer;
 	struct sched_freezer_entity *freezer_se;
 	struct task_struct *next;
@@ -216,6 +215,7 @@ balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 
 fail:
 	double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(cur_max_cpu));
+	rq_repin_lock(rq, rf);
 	return 0;
 
 success:
@@ -224,6 +224,7 @@ success:
         set_task_cpu(next, cur_cpu);
         enqueue_task_freezer(rq, next, 0);
 	double_unlock_balance(cpu_rq(cur_cpu), cpu_rq(cur_max_cpu));
+	rq_repin_lock(rq, rf);
         return 1;
 
 }
