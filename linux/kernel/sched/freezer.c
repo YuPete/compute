@@ -4,6 +4,9 @@
 #define  FREEZER_TIMESLICE ((100 * HZ)/1000)
 #define  get_freezer_nr_running(cpu) (READ_ONCE(cpu_rq(cpu)->freezer.nr_running))
 
+struct task_struct *pick_next_task_freezer(struct rq *rq);
+int balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf);
+
 int sched_freezer_timeslice = FREEZER_TIMESLICE;
 
 static inline bool is_cpu_allowed(struct task_struct *p, int cpu)
@@ -152,7 +155,8 @@ out:
 	return cpu;
 }
 
-static bool is_task_allowed(struct task_struct *candidate, int new_cpu,int old_cpu) {
+static bool is_task_allowed(struct task_struct *candidate, int new_cpu, int old_cpu)
+{
 	if (kthread_is_per_cpu(candidate))
 		return false;
 	if (!is_cpu_allowed(candidate, new_cpu))
@@ -164,13 +168,12 @@ static bool is_task_allowed(struct task_struct *candidate, int new_cpu,int old_c
 }
 
 //we should be holding the current rq's spin lock
-int
-balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
+int balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
 	int cur_cpu = cpu_of(rq);
 	int candidate_cpu; // for loop
 	int cur_max_cpu = -1; // current most busy cpu
-	int cur_max_ftasks = 1;	
+	int cur_max_ftasks = 1;
 	struct sched_freezer_entity *freezer_se;
 	struct task_struct *next = NULL;
 	struct freezer_rq *candidate_freezer_rq;
@@ -201,12 +204,12 @@ balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 
 	if (get_freezer_nr_running(cur_cpu) != 0 || get_freezer_nr_running(cur_max_cpu) < 2)
 		goto fail;
-	
+
 	candidate_freezer_rq =  &cpu_rq(cur_max_cpu)->freezer;
 
-	list_for_each_entry(freezer_se, &candidate_freezer_rq->freezer_list, freezer_list){
+	list_for_each_entry(freezer_se, &candidate_freezer_rq->freezer_list, freezer_list) {
 		next = container_of(freezer_se, struct task_struct, freezer);
-		if (is_task_allowed(next,cur_max_cpu,cur_cpu)) // custom check
+		if (is_task_allowed(next, cur_max_cpu, cur_cpu)) // custom check
 			goto success;
 		next = NULL;
 	}
@@ -218,12 +221,12 @@ fail:
 
 success:
 	//3.move cpu logic, todo
-        dequeue_task_freezer(cpu_rq(cur_max_cpu), next, 0);
-        set_task_cpu(next, cur_cpu);
-        enqueue_task_freezer(rq, next, 0);
+	dequeue_task_freezer(cpu_rq(cur_max_cpu), next, 0);
+	set_task_cpu(next, cur_cpu);
+	enqueue_task_freezer(rq, next, 0);
 	double_unlock_balance(rq, cpu_rq(cur_max_cpu));
 	rq_repin_lock(rq, rf);
-        return 1;
+	return 1;
 
 }
 
