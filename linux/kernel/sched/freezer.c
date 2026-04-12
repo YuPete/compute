@@ -164,7 +164,7 @@ static bool is_task_allowed(struct task_struct *candidate, int src_cpu, int dst_
 		return false;
 	}
 	/* When not in the task's cpumask, no point in looking further. */
-	if (!cpumask_test_cpu(src_cpu, candidate->cpus_ptr)) {
+	if (!cpumask_test_cpu(dst_cpu, candidate->cpus_ptr)) {
 		//pr_info("%d\n", 2);
 		return false;
 	}
@@ -175,7 +175,7 @@ static bool is_task_allowed(struct task_struct *candidate, int src_cpu, int dst_
 		return false;
 	}
 
-	if (task_on_cpu(cpu_rq(dst_cpu), candidate)) {
+	if (task_on_cpu(cpu_rq(src_cpu), candidate)) {
 		//pr_info("%d\n", 4);
 		return false;
 	}
@@ -197,7 +197,7 @@ int balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf
 
 	//1. find cpu to steal freezer tasks from
 	//pr_info("balance_freezer");
-	if (rq->freezer.nr_running != 0)
+	if (get_freezer_nr_running(cur_cpu) != 0)
 		return 0;
 
 	for_each_online_cpu(candidate_cpu) {
