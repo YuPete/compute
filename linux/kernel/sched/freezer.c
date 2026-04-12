@@ -157,25 +157,25 @@ out:
 	return cpu;
 }
 
-static bool is_task_allowed(struct task_struct *candidate, int new_cpu, int old_cpu)
+static bool is_task_allowed(struct task_struct *candidate, int src_cpu, int dst_cpu)
 {
 	if (kthread_is_per_cpu(candidate)) {
 		//pr_info("%d\n", 1);
 		return false;
 	}
-		/* When not in the task's cpumask, no point in looking further. */
-	if (!cpumask_test_cpu(old_cpu, candidate->cpus_ptr)) {
+	/* When not in the task's cpumask, no point in looking further. */
+	if (!cpumask_test_cpu(src_cpu, candidate->cpus_ptr)) {
 		//pr_info("%d\n", 2);
 		return false;
 	}
-		
 
 	/* migrate_disabled() must be allowed to finish. */
 	if (is_migration_disabled(candidate)) {
 		//pr_info("%d\n", 3);
 		return false;
 	}
-	if (task_on_cpu(cpu_rq(old_cpu), candidate)) {
+
+	if (task_on_cpu(cpu_rq(dst_cpu), candidate)) {
 		//pr_info("%d\n", 4);
 		return false;
 	}
