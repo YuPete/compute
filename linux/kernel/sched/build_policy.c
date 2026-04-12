@@ -41,7 +41,6 @@
 /* Source code modules: */
 
 #include "idle.c"
-
 #include "rt.c"
 
 #ifdef CONFIG_SMP

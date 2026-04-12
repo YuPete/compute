@@ -29,6 +29,10 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+
 	n = atoi(argv[1]);
-	return fib(n);
+	int r = fib(n);
+
+	printf("%d\n", r);
+	return r;
 }

@@ -108,6 +108,7 @@ extern void call_trace_sched_update_nr_running(struct rq *rq, int count);
 extern int sysctl_sched_rt_period;
 extern int sysctl_sched_rt_runtime;
 extern int sched_rr_timeslice;
+extern int sched_freezer_timeslice;
 
 /*
  * Helpers for converting nanosecond timing to jiffy resolution
@@ -185,10 +186,23 @@ static inline int dl_policy(int policy)
 {
 	return policy == SCHED_DEADLINE;
 }
+
+static inline int freezer_policy(int policy)
+{
+	return policy == SCHED_FREEZER;
+}
+
+
+static inline int heater_policy(int policy)
+{
+	return policy == SCHED_HEATER;
+}
+
 static inline bool valid_policy(int policy)
 {
 	return idle_policy(policy) || fair_policy(policy) ||
-		rt_policy(policy) || dl_policy(policy);
+		rt_policy(policy) || dl_policy(policy) ||
+		freezer_policy(policy) || heater_policy(policy);
 }
 
 static inline int task_has_idle_policy(struct task_struct *p)
@@ -566,6 +580,16 @@ do {									\
 #endif
 # define u64_u32_load(var)      u64_u32_load_copy(var, var##_copy)
 # define u64_u32_store(var, val) u64_u32_store_copy(var, var##_copy, val)
+struct freezer_rq {
+	//add sentinel listnode head
+	struct list_head freezer_list; //sentinel list head for freezer rq
+	unsigned long nr_running;
+	// for later, when we need to decide which CPU a task is assigned to / for stealing
+};
+
+struct heater_rq {
+	struct task_struct *run_q;
+};
 
 /* CFS-related fields in a runqueue */
 struct cfs_rq {
@@ -1015,6 +1039,8 @@ struct rq {
 	struct cfs_rq		cfs;
 	struct rt_rq		rt;
 	struct dl_rq		dl;
+	struct freezer_rq		freezer;
+	struct heater_rq		heater;
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this CPU: */
@@ -2364,6 +2390,8 @@ extern const struct sched_class dl_sched_class;
 extern const struct sched_class rt_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
+extern const struct sched_class freezer_sched_class;
+extern const struct sched_class heater_sched_class;
 
 static inline bool sched_stop_runnable(struct rq *rq)
 {
@@ -2894,6 +2922,8 @@ static inline void resched_latency_warn(int cpu, u64 latency) {}
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq);
 extern void init_dl_rq(struct dl_rq *dl_rq);
+extern void init_freezer_rq(struct freezer_rq *freezer_rq);
+extern void init_heater_rq(struct heater_rq *heater_rq);
 
 extern void cfs_bandwidth_usage_inc(void);
 extern void cfs_bandwidth_usage_dec(void);

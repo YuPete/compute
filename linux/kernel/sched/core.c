@@ -4544,6 +4544,14 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 	p->rt.on_rq		= 0;
 	p->rt.on_list		= 0;
 
+	INIT_LIST_HEAD(&p->freezer.freezer_list);
+	p->freezer.time_slice = sched_freezer_timeslice;
+	p->freezer.on_rq = false;
+
+	INIT_LIST_HEAD(&p->heater.heater_list);
+	p->heater.on_rq = false;
+
+
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	INIT_HLIST_HEAD(&p->preempt_notifiers);
 #endif
@@ -4766,8 +4774,9 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	 * Revert to default priority/policy on fork if requested.
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
-		if (task_has_dl_policy(p) || task_has_rt_policy(p)) {
-			p->policy = SCHED_NORMAL;
+		if (task_has_dl_policy(p) || task_has_rt_policy(p) ||
+			freezer_policy(p->policy) || heater_policy(p->policy)) {
+			p->policy = SCHED_FREEZER;
 			p->static_prio = NICE_TO_PRIO(0);
 			p->rt_priority = 0;
 		} else if (PRIO_TO_NICE(p->static_prio) < 0)
@@ -4787,8 +4796,12 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 		return -EAGAIN;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
-	else
+	else if (p->policy == SCHED_NORMAL)
 		p->sched_class = &fair_sched_class;
+	else if (p->policy == SCHED_HEATER)
+		p->sched_class = &heater_sched_class;
+	else
+		p->sched_class = &freezer_sched_class;
 
 	init_entity_runnable_average(&p->se);
 
@@ -5999,6 +6012,8 @@ static void put_prev_task_balance(struct rq *rq, struct task_struct *prev,
 
 	put_prev_task(rq, prev);
 }
+extern struct task_struct *pick_next_task_freezer(struct rq *rq);
+extern int balance_freezer(struct rq *rq, struct task_struct *prev, struct rq_flags *rf);
 
 /*
  * Pick up the highest-prio task:
@@ -6015,30 +6030,7 @@ __pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	 * higher scheduling class, because otherwise those lose the
 	 * opportunity to pull in more work from other CPUs.
 	 */
-	if (likely(!sched_class_above(prev->sched_class, &fair_sched_class) &&
-		   rq->nr_running == rq->cfs.h_nr_running)) {
 
-		p = pick_next_task_fair(rq, prev, rf);
-		if (unlikely(p == RETRY_TASK))
-			goto restart;
-
-		/* Assume the next prioritized class is idle_sched_class */
-		if (!p) {
-			put_prev_task(rq, prev);
-			p = pick_next_task_idle(rq);
-		}
-
-		/*
-		 * This is the fast path; it cannot be a DL server pick;
-		 * therefore even if @p == @prev, ->dl_server must be NULL.
-		 */
-		if (p->dl_server)
-			p->dl_server = NULL;
-
-		return p;
-	}
-
-restart:
 	put_prev_task_balance(rq, prev, rf);
 
 	/*
@@ -7066,8 +7058,12 @@ static void __setscheduler_prio(struct task_struct *p, int prio)
 		p->sched_class = &dl_sched_class;
 	else if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
-	else
+	else if (p->policy == SCHED_NORMAL)
 		p->sched_class = &fair_sched_class;
+	else if (p->policy == SCHED_HEATER)
+		p->sched_class = &heater_sched_class;
+	else
+		p->sched_class = &freezer_sched_class;
 
 	p->prio = prio;
 }
@@ -9045,6 +9041,8 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
 	case SCHED_DEADLINE:
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
+	case SCHED_FREEZER:
+	case SCHED_HEATER:
 	case SCHED_IDLE:
 		ret = 0;
 		break;
@@ -9072,6 +9070,8 @@ SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
 	case SCHED_DEADLINE:
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
+	case SCHED_FREEZER:
+	case SCHED_HEATER:
 	case SCHED_IDLE:
 		ret = 0;
 	}
@@ -9903,9 +9903,13 @@ void __init sched_init(void)
 	int i;
 
 	/* Make sure the linker didn't screw up */
-	BUG_ON(&idle_sched_class != &fair_sched_class + 1 ||
-	       &fair_sched_class != &rt_sched_class + 1 ||
+
+	BUG_ON(&idle_sched_class != &heater_sched_class + 1 ||
+		&heater_sched_class != &fair_sched_class + 1 ||
+		&fair_sched_class != &freezer_sched_class + 1 ||
+	       &freezer_sched_class != &rt_sched_class + 1 ||
 	       &rt_sched_class   != &dl_sched_class + 1);
+
 #ifdef CONFIG_SMP
 	BUG_ON(&dl_sched_class != &stop_sched_class + 1);
 #endif
@@ -9972,6 +9976,9 @@ void __init sched_init(void)
 		init_cfs_rq(&rq->cfs);
 		init_rt_rq(&rq->rt);
 		init_dl_rq(&rq->dl);
+		init_freezer_rq(&rq->freezer);
+		init_heater_rq(&rq->heater);
+
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		INIT_LIST_HEAD(&rq->leaf_cfs_rq_list);
 		rq->tmp_alone_branch = &rq->leaf_cfs_rq_list;
