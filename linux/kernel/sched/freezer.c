@@ -235,7 +235,6 @@ fail:
 
 success:
 	//3.move cpu logic, todo
-	//pr_info("success");
 	dequeue_task_freezer(cpu_rq(cur_max_cpu), next, 0);
 	set_task_cpu(next, cur_cpu);
 	enqueue_task_freezer(rq, next, 0);
